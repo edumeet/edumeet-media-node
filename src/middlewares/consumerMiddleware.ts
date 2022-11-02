@@ -6,10 +6,6 @@ import { RoomServerConnectionContext } from '../RoomServerConnection';
 
 const logger = new Logger('ConsumerMiddleware');
 
-interface ConsumerData {
-	remoteClosed?: boolean;
-}
-
 export const createConsumerMiddleware = ({
 	roomServer,
 }: MiddlewareOptions): Middleware<RoomServerConnectionContext> => {
