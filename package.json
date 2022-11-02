@@ -11,7 +11,7 @@
 		"connect": "node connect.js"
 	},
 	"devDependencies": {
-		"@tsconfig/node16": "^1.0.3",
+		"@tsconfig/node18": "^1.0.1",
 		"@types/debug": "^4.1.7",
 		"@types/node": "^18.11.9",
 		"@typescript-eslint/eslint-plugin": "^5.42.0",

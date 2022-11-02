@@ -1,4 +1,3 @@
-import { Router } from 'mediasoup/node/lib/Router';
 import config from '../../config/config.json';
 import { Logger } from '../common/logger';
 import { Middleware } from '../common/middleware';
@@ -7,13 +6,6 @@ import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
 
 const logger = new Logger('TransportMiddleware');
-
-interface WebRtcTransportData {
-	producing?: boolean;
-	consuming?: boolean;
-	router: Router;
-	remoteClosed?: boolean;
-}
 
 export const createTransportMiddleware = ({
 	roomServer,
@@ -62,7 +54,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
 					...config.mediasoup.pipeTransport
 				});
@@ -103,7 +95,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!transport)
@@ -127,7 +119,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!transport)
@@ -144,8 +136,6 @@ export const createTransportMiddleware = ({
 				const {
 					routerId,
 					forceTcp,
-					producing,
-					consuming,
 					sctpCapabilities,
 				} = message.data;
 
@@ -154,7 +144,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const webRtcTransportOptions = {
 					...config.mediasoup.webRtcTransport,
 					enableSctp: Boolean(sctpCapabilities),
@@ -163,10 +153,8 @@ export const createTransportMiddleware = ({
 					enableUdp: !forceTcp,
 					preferUdp: !forceTcp,
 					appData: {
-						producing,
-						consuming,
 						router
-					} as WebRtcTransportData
+					}
 				};
 
 				const transport = await router.createWebRtcTransport(
@@ -218,7 +206,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -241,7 +229,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -262,7 +250,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 				
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -286,7 +274,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)

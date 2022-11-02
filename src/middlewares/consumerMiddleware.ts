@@ -38,7 +38,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!pipeTransport)
@@ -52,8 +52,7 @@ export const createConsumerMiddleware = ({
 					throw new Error(`producer with id "${producerId}" not found`);
 
 				const pipeConsumer = await pipeTransport.consume({
-					producerId: producer.id,
-					appData: {} as ConsumerData
+					producerId: producer.id
 				});
 
 				routerData.pipeConsumers.set(pipeConsumer.id, pipeConsumer);
@@ -112,7 +111,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeConsumer = routerData.pipeConsumers.get(pipeConsumerId);
 
 				if (!pipeConsumer)
@@ -138,7 +137,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -156,7 +155,6 @@ export const createConsumerMiddleware = ({
 						producerId: producer.id,
 						rtpCapabilities,
 						paused: producer.kind === 'video',
-						appData: {} as ConsumerData
 					});
 
 					routerData.consumers.set(consumer.id, consumer);
@@ -230,7 +228,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -251,7 +249,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -271,7 +269,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -290,7 +288,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -309,7 +307,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -329,7 +327,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)

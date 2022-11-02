@@ -6,10 +6,6 @@ import { RoomServerConnectionContext } from '../RoomServerConnection';
 
 const logger = new Logger('ProducerMiddleware');
 
-interface ProducerData {
-	remoteClosed?: boolean;
-}
-
 export const createProducerMiddleware = ({
 	roomServer,
 }: MiddlewareOptions): Middleware<RoomServerConnectionContext> => {
@@ -41,7 +37,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!pipeTransport)
@@ -52,7 +48,6 @@ export const createProducerMiddleware = ({
 					kind,
 					rtpParameters,
 					paused,
-					appData: {} as ProducerData
 				});
 
 				routerData.pipeProducers.set(pipeProducer.id, pipeProducer);
@@ -88,7 +83,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
@@ -112,7 +107,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
@@ -135,7 +130,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
@@ -161,7 +156,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -172,7 +167,6 @@ export const createProducerMiddleware = ({
 						kind,
 						rtpParameters,
 						paused,
-						appData: {} as ProducerData
 					});
 
 					routerData.producers.set(producer.id, producer);
@@ -216,7 +210,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)
@@ -237,7 +231,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)
@@ -257,7 +251,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData as RouterData;
+				const routerData = router.appData as unknown as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)
