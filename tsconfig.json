@@ -1,0 +1,10 @@
+{
+	"extends": "@tsconfig/node16/tsconfig.json",
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+		"outDir": "dist"
+	},
+	"include": ["src"],
+	"exclude": ["node_modules", "connect.js"]
+}
