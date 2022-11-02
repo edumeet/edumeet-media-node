@@ -1,5 +1,5 @@
 {
-	"listenPort": "443",
+	"listenPort": "3001",
 	"listenHost": "0.0.0.0",
 	"tls": {
 		"cert": "./certs/edumeet-demo-cert.pem",

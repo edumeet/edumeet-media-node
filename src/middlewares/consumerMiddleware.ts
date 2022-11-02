@@ -38,7 +38,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!pipeTransport)
@@ -53,9 +53,7 @@ export const createConsumerMiddleware = ({
 
 				const pipeConsumer = await pipeTransport.consume({
 					producerId: producer.id,
-					appData: {
-						serverData: {} as ConsumerData
-					}
+					appData: {} as ConsumerData
 				});
 
 				routerData.pipeConsumers.set(pipeConsumer.id, pipeConsumer);
@@ -63,7 +61,7 @@ export const createConsumerMiddleware = ({
 				pipeConsumer.observer.once('close', () => {
 					routerData.pipeConsumers.delete(pipeConsumer.id);
 
-					if (!pipeConsumer.appData.serverData.remoteClosed) {
+					if (!pipeConsumer.appData.remoteClosed) {
 						roomServerConnection.notify({
 							method: 'pipeConsumerClosed',
 							data: {
@@ -114,15 +112,13 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeConsumer = routerData.pipeConsumers.get(pipeConsumerId);
 
 				if (!pipeConsumer)
 					throw new Error(`pipeConsumer with id "${pipeConsumerId}" not found`);
 
-				const pipeConsumerData = pipeConsumer.appData.serverData as ConsumerData;
-
-				pipeConsumerData.remoteClosed = true;
+				pipeConsumer.appData.remoteClosed = true;
 				pipeConsumer.close();
 				context.handled = true;
 
@@ -142,7 +138,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -160,9 +156,7 @@ export const createConsumerMiddleware = ({
 						producerId: producer.id,
 						rtpCapabilities,
 						paused: producer.kind === 'video',
-						appData: {
-							serverData: {} as ConsumerData
-						}
+						appData: {} as ConsumerData
 					});
 
 					routerData.consumers.set(consumer.id, consumer);
@@ -170,7 +164,7 @@ export const createConsumerMiddleware = ({
 					consumer.observer.once('close', () => {
 						routerData.consumers.delete(consumer.id);
 
-						if (!consumer.appData.serverData.remoteClosed) {
+						if (!consumer.appData.remoteClosed) {
 							roomServerConnection.notify({
 								method: 'consumerClosed',
 								data: {
@@ -236,15 +230,13 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
 					throw new Error(`consumer with id "${consumerId}" not found`);
-				
-				const consumerData = consumer.appData.serverData as ConsumerData;
 
-				consumerData.remoteClosed = true;
+				consumer.appData.remoteClosed = true;
 				consumer.close();
 				context.handled = true;
 
@@ -259,7 +251,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -279,7 +271,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -298,7 +290,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -317,7 +309,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)
@@ -337,7 +329,7 @@ export const createConsumerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const consumer = routerData.consumers.get(consumerId);
 
 				if (!consumer)

@@ -1,3 +1,4 @@
+import { Router } from 'mediasoup/node/lib/Router';
 import config from '../../config/config.json';
 import { Logger } from '../common/logger';
 import { Middleware } from '../common/middleware';
@@ -6,6 +7,13 @@ import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
 
 const logger = new Logger('TransportMiddleware');
+
+interface WebRtcTransportData {
+	producing?: boolean;
+	consuming?: boolean;
+	router: Router;
+	remoteClosed?: boolean;
+}
 
 export const createTransportMiddleware = ({
 	roomServer,
@@ -54,7 +62,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = await router.createPipeTransport({
 					...config.mediasoup.pipeTransport
 				});
@@ -63,13 +71,15 @@ export const createTransportMiddleware = ({
 				transport.observer.once('close', () => {
 					routerData.pipeTransports.delete(transport.id);
 
-					roomServerConnection.notify({
-						method: 'pipeTransportClosed',
-						data: {
-							routerId,
-							pipeTransportId: transport.id
-						}
-					});
+					if (!transport.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'pipeTransportClosed',
+							data: {
+								routerId,
+								pipeTransportId: transport.id
+							}
+						});
+					}
 				});
 
 				response.id = transport.id;
@@ -93,7 +103,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!transport)
@@ -106,14 +116,10 @@ export const createTransportMiddleware = ({
 				break;
 			}
 
-			case 'createWebRtcTransport': {
+			case 'closePipeTransport': {
 				const {
 					routerId,
-					forceTcp,
-					producing,
-					consuming,
-					sctpCapabilities,
-					appData: clientData
+					pipeTransportId
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -121,7 +127,34 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
+				const transport = routerData.pipeTransports.get(pipeTransportId);
+
+				if (!transport)
+					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
+
+				transport.appData.remoteClosed = true;
+				transport.close();
+				context.handled = true;
+
+				break;
+			}
+
+			case 'createWebRtcTransport': {
+				const {
+					routerId,
+					forceTcp,
+					producing,
+					consuming,
+					sctpCapabilities,
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as RouterData;
 				const webRtcTransportOptions = {
 					...config.mediasoup.webRtcTransport,
 					enableSctp: Boolean(sctpCapabilities),
@@ -130,13 +163,10 @@ export const createTransportMiddleware = ({
 					enableUdp: !forceTcp,
 					preferUdp: !forceTcp,
 					appData: {
-						clientData,
-						serverData: {
-							producing,
-							consuming,
-							router
-						}
-					}
+						producing,
+						consuming,
+						router
+					} as WebRtcTransportData
 				};
 
 				const transport = await router.createWebRtcTransport(
@@ -147,13 +177,15 @@ export const createTransportMiddleware = ({
 				transport.observer.once('close', () => {
 					routerData.webRtcTransports.delete(transport.id);
 
-					roomServerConnection.notify({
-						method: 'webRtcTransportClosed',
-						data: {
-							routerId,
-							transportId: transport.id
-						}
-					});
+					if (!transport.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'webRtcTransportClosed',
+							data: {
+								routerId,
+								transportId: transport.id
+							}
+						});
+					}
 				});
 
 				response.id = transport.id;
@@ -186,13 +218,37 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
 					throw new Error(`transport with id "${transportId}" not found`);
 
 				await transport.connect({ dtlsParameters });
+				context.handled = true;
+
+				break;
+			}
+
+			case 'closeWebRtcTransport': {
+				const {
+					routerId,
+					transportId
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as RouterData;
+				const transport = routerData.webRtcTransports.get(transportId);
+
+				if (!transport)
+					throw new Error(`transport with id "${transportId}" not found`);
+
+				transport.appData.remoteClosed = true;
+				transport.close();
 				context.handled = true;
 
 				break;
@@ -206,7 +262,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 				
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -230,7 +286,7 @@ export const createTransportMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)

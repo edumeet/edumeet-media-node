@@ -34,7 +34,6 @@ export const createProducerMiddleware = ({
 					kind,
 					rtpParameters,
 					paused,
-					appData: clientData
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -42,7 +41,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
 
 				if (!pipeTransport)
@@ -53,10 +52,7 @@ export const createProducerMiddleware = ({
 					kind,
 					rtpParameters,
 					paused,
-					appData: {
-						clientData,
-						serverData: {} as ProducerData
-					}
+					appData: {} as ProducerData
 				});
 
 				routerData.pipeProducers.set(pipeProducer.id, pipeProducer);
@@ -64,7 +60,7 @@ export const createProducerMiddleware = ({
 				pipeProducer.observer.once('close', () => {
 					routerData.pipeProducers.delete(pipeProducer.id);
 
-					if (!pipeProducer.appData.serverData.remoteClosed) {
+					if (!pipeProducer.appData.remoteClosed) {
 						roomServerConnection.notify({
 							method: 'pipeProducerClosed',
 							data: {
@@ -92,15 +88,13 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
 					throw new Error(`pipeProducer with id "${pipeProducerId}" not found`);
 
-				const pipeProducerData = pipeProducer.appData.serverData as ProducerData;
-
-				pipeProducerData.remoteClosed = true;
+				pipeProducer.appData.remoteClosed = true;
 				pipeProducer.close();
 				context.handled = true;
 
@@ -118,7 +112,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
@@ -141,7 +135,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const pipeProducer = routerData.pipeProducers.get(pipeProducerId);
 
 				if (!pipeProducer)
@@ -160,7 +154,6 @@ export const createProducerMiddleware = ({
 					kind,
 					rtpParameters,
 					paused,
-					appData: clientData
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -168,7 +161,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 
 				if (!transport)
@@ -179,17 +172,14 @@ export const createProducerMiddleware = ({
 						kind,
 						rtpParameters,
 						paused,
-						appData: {
-							clientData,
-							serverData: {} as ProducerData
-						}
+						appData: {} as ProducerData
 					});
 
 					routerData.producers.set(producer.id, producer);
 					producer.observer.once('close', () => {
 						routerData.producers.delete(producer.id);
 
-						if (!producer.appData.serverData.remoteClosed) {
+						if (!producer.appData.remoteClosed) {
 							roomServerConnection.notify({
 								method: 'producerClosed',
 								data: {
@@ -226,15 +216,13 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)
 					throw new Error(`producer with id "${producerId}" not found`);
-				
-				const producerData = producer.appData.serverData as ProducerData;
 
-				producerData.remoteClosed = true;
+				producer.appData.remoteClosed = true;
 				producer.close();
 				context.handled = true;
 
@@ -249,7 +237,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)
@@ -269,7 +257,7 @@ export const createProducerMiddleware = ({
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
 
-				const routerData = router.appData.serverData as RouterData;
+				const routerData = router.appData as RouterData;
 				const producer = routerData.producers.get(producerId);
 
 				if (!producer)

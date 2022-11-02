@@ -25,9 +25,7 @@ interface WorkerSettings {
 	logTags?: WorkerLogTag[];
 	rtcMinPort?: number;
 	rtcMaxPort?: number;
-	appData: {
-		serverData: WorkerData;
-	};
+	appData: WorkerData;
 }
 
 export interface WorkerData {
@@ -48,6 +46,7 @@ export interface RouterData {
 	pipeDataProducers: Map<string, DataProducer>;
 	dataConsumers: Map<string, DataConsumer>;
 	pipeDataConsumers: Map<string, DataConsumer>;
+	remoteClose?: boolean;
 }
 
 export default class MediaService {
@@ -88,7 +87,7 @@ export default class MediaService {
 	@skipIfClosed
 	private async startWorker(settings: WorkerSettings): Promise<void> {
 		const worker = await mediasoup.createWorker(settings);
-		const workerData = worker.appData.serverData as WorkerData;
+		const workerData = worker.appData as WorkerData;
 
 		logger.debug('startWorker() worker started [workerPid: %s]', worker.pid);
 
@@ -126,22 +125,18 @@ export default class MediaService {
 					rtcMinPort,
 					rtcMaxPort,
 					appData: {
-						serverData: {
-							consumers: new Map<string, Consumer>(),
-							routersByRoomId: new Map<string, Promise<Router>>(),
-						} as WorkerData
-					},
+						consumers: new Map<string, Consumer>(),
+						routersByRoomId: new Map<string, Promise<Router>>(),
+					} as WorkerData
 				} as WorkerSettings;
 			} else {
 				settings = {
 					rtcMinPort,
 					rtcMaxPort,
 					appData: {
-						serverData: {
-							consumers: new Map<string, Consumer>(),
-							routersByRoomId: new Map<string, Promise<Router>>(),
-						} as WorkerData
-					},
+						consumers: new Map<string, Consumer>(),
+						routersByRoomId: new Map<string, Promise<Router>>(),
+					} as WorkerData
 				} as WorkerSettings;
 			}
 
@@ -153,7 +148,7 @@ export default class MediaService {
 	private async getOrCreateRouter(roomId: string, worker: Worker): Promise<Router> {
 		logger.debug('getOrCreateRouter() [roomId: %s, workerPid: %s]', roomId, worker.pid);
 
-		const workerData = worker.appData.serverData as WorkerData;
+		const workerData = worker.appData as WorkerData;
 
 		let routerPromise = workerData.routersByRoomId.get(roomId);
 
@@ -175,21 +170,19 @@ export default class MediaService {
 							parameters: { 'x-google-start-bitrate': 500 }
 						} ],
 						appData: {
-							serverData: {
-								roomId,
-								workerPid: worker.pid,
-								pipeTransports: new Map<string, PipeTransport>(),
-								webRtcTransports: new Map<string, WebRtcTransport>(),
-								producers: new Map<string, Producer>(),
-								pipeProducers: new Map<string, Producer>(),
-								consumers: new Map<string, Consumer>(),
-								pipeConsumers: new Map<string, Consumer>(),
-								dataProducers: new Map<string, DataProducer>(),
-								pipeDataProducers: new Map<string, DataProducer>(),
-								dataConsumers: new Map<string, DataConsumer>(),
-								pipeDataConsumers: new Map<string, DataConsumer>(),
-							} as RouterData
-						}
+							roomId,
+							workerPid: worker.pid,
+							pipeTransports: new Map<string, PipeTransport>(),
+							webRtcTransports: new Map<string, WebRtcTransport>(),
+							producers: new Map<string, Producer>(),
+							pipeProducers: new Map<string, Producer>(),
+							consumers: new Map<string, Consumer>(),
+							pipeConsumers: new Map<string, Consumer>(),
+							dataProducers: new Map<string, DataProducer>(),
+							pipeDataProducers: new Map<string, DataProducer>(),
+							dataConsumers: new Map<string, DataConsumer>(),
+							pipeDataConsumers: new Map<string, DataConsumer>(),
+						} as RouterData
 					});
 
 					logger.debug(
@@ -235,16 +228,16 @@ export default class MediaService {
 
 		const roomRouters: Router[] = [];
 
-		for (const { appData: { serverData } } of this.workers.items) {
-			const r = await (serverData as WorkerData).routersByRoomId.get(roomId);
+		for (const { appData } of this.workers.items) {
+			const r = await (appData as WorkerData).routersByRoomId.get(roomId);
 
 			if (r) roomRouters.push(r);
 		}
 
 		// Create a new array, we don't want to mutate the original one
 		const leastLoadedWorkers = [ ...this.workers.items ].sort((a, b) =>
-			(a.appData.serverData as WorkerData).consumers.size -
-			(b.appData.serverData as WorkerData).consumers.size);
+			(a.appData as WorkerData).consumers.size -
+			(b.appData as WorkerData).consumers.size);
 
 		if (roomRouters.length === 0) {
 			logger.debug('getRouter() first client [roomId: %s]', roomId);
@@ -253,12 +246,12 @@ export default class MediaService {
 		}
 
 		const leastLoadedRoomWorkerPids = roomRouters.map((router) =>
-			(router.appData.serverData as RouterData).workerPid);
+			(router.appData as RouterData).workerPid);
 		const leastLoadedRoomWorkers = leastLoadedWorkers
 			.filter((worker) => leastLoadedRoomWorkerPids.includes(worker.pid));
 
 		for (const worker of leastLoadedRoomWorkers) {
-			const workerData = worker.appData.serverData as WorkerData;
+			const workerData = worker.appData as WorkerData;
 
 			if (workerData.consumers.size < 500) {
 				logger.debug(
@@ -272,11 +265,11 @@ export default class MediaService {
 		}
 
 		const leastLoadedWorkerData =
-			leastLoadedWorkers[0].appData.serverData as WorkerData;
+			leastLoadedWorkers[0].appData as WorkerData;
 
 		if (leastLoadedRoomWorkers.length > 0) {
 			const leastLoadedRoomWorkerData =
-				leastLoadedRoomWorkers[0].appData.serverData as WorkerData;
+				leastLoadedRoomWorkers[0].appData as WorkerData;
 
 			if (leastLoadedRoomWorkers[0].pid === leastLoadedWorkers[0].pid) {
 				logger.debug(
