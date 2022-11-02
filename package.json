@@ -22,7 +22,7 @@
 	},
 	"dependencies": {
 		"debug": "^4.3.4",
-		"mediasoup": "^3.10.12",
+		"mediasoup": "github:havfo/mediasoup#v3",
 		"socket.io": "^4.5.3"
 	},
 	"optionalDependencies": {
