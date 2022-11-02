@@ -1,7 +1,6 @@
 import { Logger } from '../common/logger';
 import { Middleware } from '../common/middleware';
 import { MiddlewareOptions } from '../common/types';
-import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
 
 const logger = new Logger('RouterMiddleware');
