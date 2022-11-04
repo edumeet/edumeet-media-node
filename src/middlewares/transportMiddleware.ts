@@ -1,4 +1,3 @@
-import config from '../../config/config.json';
 import { Logger } from '../common/logger';
 import { Middleware } from '../common/middleware';
 import { MiddlewareOptions } from '../common/types';
@@ -9,6 +8,7 @@ const logger = new Logger('TransportMiddleware');
 
 export const createTransportMiddleware = ({
 	roomServer,
+	mediaService
 }: MiddlewareOptions): Middleware<RoomServerConnectionContext> => {
 	logger.debug('createTransportMiddleware()');
 
@@ -56,7 +56,10 @@ export const createTransportMiddleware = ({
 
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
-					...config.mediasoup.pipeTransport
+					listenIp: { ip: mediaService.ip, announcedIp: mediaService.announcedIp },
+					enableSrtp: true,
+					enableSctp: true,
+					enableRtx: true,
 				});
 
 				routerData.pipeTransports.set(transport.id, transport);
@@ -145,21 +148,15 @@ export const createTransportMiddleware = ({
 					throw new Error(`router with id "${routerId}" not found`);
 
 				const routerData = router.appData as unknown as RouterData;
-				const webRtcTransportOptions = {
-					...config.mediasoup.webRtcTransport,
+				const transport = await router.createWebRtcTransport({
+					listenIps: [ { ip: mediaService.ip, announcedIp: mediaService.announcedIp } ],
+					initialAvailableOutgoingBitrate: mediaService.initialAvailableOutgoingBitrate,
 					enableSctp: Boolean(sctpCapabilities),
 					numSctpStreams: (sctpCapabilities ?? {}).numStreams,
 					enableTcp: true,
 					enableUdp: !forceTcp,
 					preferUdp: !forceTcp,
-					appData: {
-						router
-					}
-				};
-
-				const transport = await router.createWebRtcTransport(
-					webRtcTransportOptions
-				);
+				});
 
 				routerData.webRtcTransports.set(transport.id, transport);
 				transport.observer.once('close', () => {
@@ -182,12 +179,16 @@ export const createTransportMiddleware = ({
 				response.dtlsParameters = transport.dtlsParameters;
 				response.sctpParameters = transport.sctpParameters;
 				context.handled = true;
-
-				const { maxIncomingBitrate } = config.mediasoup.webRtcTransport;
 				
-				if (maxIncomingBitrate) {
+				if (mediaService.maxIncomingBitrate) {
 					(async () => {
-						await transport.setMaxIncomingBitrate(maxIncomingBitrate);
+						await transport.setMaxIncomingBitrate(mediaService.maxIncomingBitrate);
+					})().catch();
+				}
+
+				if (mediaService.maxOutgoingBitrate) {
+					(async () => {
+						await transport.setMaxOutgoingBitrate(mediaService.maxOutgoingBitrate);
 					})().catch();
 				}
 

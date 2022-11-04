@@ -1,9 +1,5 @@
 node_modules/
 
-/config/**
-!/config/config.example.*
-!/config/README.md
-
 /dist/
 
 /certs/**

@@ -49,11 +49,19 @@ export interface RouterData {
 	remoteClose?: boolean;
 }
 
+interface MediaServiceOptions {
+	ip: string;
+	announcedIp?: string;
+	initialAvailableOutgoingBitrate?: number;
+	maxIncomingBitrate?: number;
+	maxOutgoingBitrate?: number;
+}
+
 export default class MediaService {
-	public static async create(): Promise<MediaService> {
+	public static async create(options: MediaServiceOptions): Promise<MediaService> {
 		logger.debug('create()');
 
-		const mediaService = new MediaService();
+		const mediaService = new MediaService(options);
 
 		await mediaService.startWorkers();
 
@@ -61,7 +69,28 @@ export default class MediaService {
 	}
 
 	public closed = false;
+	public ip: string;
+	public announcedIp?: string;
+	public initialAvailableOutgoingBitrate: number;
+	public maxIncomingBitrate: number;
+	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
+
+	constructor({
+		ip,
+		announcedIp,
+		initialAvailableOutgoingBitrate,
+		maxIncomingBitrate,
+		maxOutgoingBitrate,
+	}: MediaServiceOptions) {
+		logger.debug('constructor()');
+
+		this.ip = ip;
+		this.announcedIp = announcedIp;
+		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate ?? 600000;
+		this.maxIncomingBitrate = maxIncomingBitrate ?? 10000000;
+		this.maxOutgoingBitrate = maxOutgoingBitrate ?? 10000000;
+	}
 
 	@skipIfClosed
 	public close() {
