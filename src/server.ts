@@ -15,24 +15,30 @@ const logger = new Logger('MediaNode');
 
 const showUsage = () => {
 	logger.debug('Usage:');
-	logger.debug('  --listenPort=<port> (optional, default: 3000)');
+	logger.debug('  --listenPort <port> (optional, default: 3000)');
 	logger.debug('    The port to listen for incoming connections socket connections.\n\n');
-	logger.debug('  --listenHost=<host> (optional, default: 0.0.0.0)');
+	logger.debug('  --listenHost <host> (optional, default: 0.0.0.0)');
 	logger.debug('    The host to listen for incoming connections socket connections.\n\n');
-	logger.debug('  --cert=<path> (optional, default: ./certs/edumeet-demo-cert.pem)');
+	logger.debug('  --cert <path> (optional, default: ./certs/edumeet-demo-cert.pem)');
 	logger.debug('    The path to the certificate file used for socket.\n\n');
-	logger.debug('  --key=<path> (optional, default: ./certs/edumeet-demo-key.pem)');
+	logger.debug('  --key <path> (optional, default: ./certs/edumeet-demo-key.pem)');
 	logger.debug('    The path to the key file used for socket.\n\n');
-	logger.debug('  --ip=<ip> (required)');
+	logger.debug('  --ip <ip> (required)');
 	logger.debug('    The IP address used to create mediasoup transports.\n\n');
-	logger.debug('  --announcedIp=<ip> (optional, no default)');
+	logger.debug('  --announcedIp <ip> (optional, no default)');
 	logger.debug('    The IP address to be announced to clients for mediasoup transports.\n\n');
-	logger.debug('  --initialAvailableOutgoingBitrate=<bitrate> (optional, default: 600000)');
+	logger.debug('  --initialAvailableOutgoingBitrate <bitrate> (optional, default: 600000)');
 	logger.debug('    The initial available outgoing bitrate for mediasoup transports.\n\n');
-	logger.debug('  --maxIncomingBitrate=<bitrate> (optional, default: 10000000)');
+	logger.debug('  --maxIncomingBitrate <bitrate> (optional, default: 10000000)');
 	logger.debug('    The max incoming bitrate for mediasoup transports.\n\n');
-	logger.debug('  --maxOutgoingBitrate=<bitrate> (optional, default: 10000000)');
+	logger.debug('  --maxOutgoingBitrate <bitrate> (optional, default: 10000000)');
 	logger.debug('    The max outgoing bitrate for mediasoup transports.\n\n');
+	logger.debug('  --rtcMinPort <port> (optional, default: 40000)');
+	logger.debug('    The lower bound port for mediasoup transport.\n\n');
+	logger.debug('  --rtcMaxPort <port> (optional, default: 49999)');
+	logger.debug('    The upper bound port for mediasoup transport.\n\n');
+	logger.debug('  --numberOfWorkers <num> (optional, default: number of host cores)');
+	logger.debug('    The number of mediasoup workers to create.\n\n');
 };
 
 (async () => {
@@ -48,6 +54,9 @@ const showUsage = () => {
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
+		rtcMinPort,
+		rtcMaxPort,
+		numberOfWorkers,
 	} = minimist(process.argv.slice(2));
 	
 	if (!ip || help || usage) {
@@ -67,6 +76,9 @@ const showUsage = () => {
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
+		rtcMinPort,
+		rtcMaxPort,
+		numberOfWorkers,
 	}).catch((error) => {
 		logger.error('MediaService creation failed: %o', error);
 

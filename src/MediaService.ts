@@ -55,6 +55,9 @@ interface MediaServiceOptions {
 	initialAvailableOutgoingBitrate?: number;
 	maxIncomingBitrate?: number;
 	maxOutgoingBitrate?: number;
+	rtcMinPort?: number;
+	rtcMaxPort?: number;
+	numberOfWorkers?: number;
 }
 
 export default class MediaService {
@@ -63,7 +66,7 @@ export default class MediaService {
 
 		const mediaService = new MediaService(options);
 
-		await mediaService.startWorkers();
+		await mediaService.startWorkers(options);
 
 		return mediaService;
 	}
@@ -137,11 +140,11 @@ export default class MediaService {
 	}
 
 	@skipIfClosed
-	public async startWorkers(
-		numberOfWorkers = os.cpus().length,
+	public async startWorkers({
 		rtcMinPort = 40000,
 		rtcMaxPort = 49999,
-	): Promise<void> {
+		numberOfWorkers = os.cpus().length,
+	}: MediaServiceOptions): Promise<void> {
 		logger.debug('startWorkers() [numberOfWorkers: %s]', numberOfWorkers);
 
 		for (let i = 0; i < numberOfWorkers; ++i) {
