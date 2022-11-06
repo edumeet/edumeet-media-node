@@ -1,6 +1,5 @@
 import { Logger } from './common/logger';
 import * as mediasoup from 'mediasoup';
-import os from 'os';
 import { Router } from 'mediasoup/node/lib/Router';
 import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { Transport } from 'mediasoup/node/lib/Transport';
@@ -17,6 +16,7 @@ import { PipeTransport } from 'mediasoup/node/lib/PipeTransport';
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { DataProducer } from 'mediasoup/node/lib/DataProducer';
 import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
+import { WebRtcServer } from 'mediasoup/node/lib/WebRtcServer';
 
 const logger = new Logger('MediaService');
 
@@ -31,10 +31,12 @@ interface WorkerSettings {
 export interface WorkerData {
 	consumers: Map<string, Consumer>;
 	routersByRoomId: Map<string, Promise<Router>>;
+	webRtcServer: WebRtcServer;
 }
 
 export interface RouterData {
 	roomId: string;
+	webRtcServer: WebRtcServer;
 	workerPid: number;
 	pipeTransports: Map<string, PipeTransport>;
 	webRtcTransports: Map<string, WebRtcTransport>;
@@ -52,12 +54,12 @@ export interface RouterData {
 interface MediaServiceOptions {
 	ip: string;
 	announcedIp?: string;
-	initialAvailableOutgoingBitrate?: number;
-	maxIncomingBitrate?: number;
-	maxOutgoingBitrate?: number;
-	rtcMinPort?: number;
-	rtcMaxPort?: number;
-	numberOfWorkers?: number;
+	initialAvailableOutgoingBitrate: number;
+	maxIncomingBitrate: number;
+	maxOutgoingBitrate: number;
+	rtcMinPort: number;
+	rtcMaxPort: number;
+	numberOfWorkers: number;
 }
 
 export default class MediaService {
@@ -90,9 +92,9 @@ export default class MediaService {
 
 		this.ip = ip;
 		this.announcedIp = announcedIp;
-		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate ?? 600000;
-		this.maxIncomingBitrate = maxIncomingBitrate ?? 10000000;
-		this.maxOutgoingBitrate = maxOutgoingBitrate ?? 10000000;
+		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
+		this.maxIncomingBitrate = maxIncomingBitrate;
+		this.maxOutgoingBitrate = maxOutgoingBitrate;
 	}
 
 	@skipIfClosed
@@ -121,6 +123,20 @@ export default class MediaService {
 		const worker = await mediasoup.createWorker(settings);
 		const workerData = worker.appData as unknown as WorkerData;
 
+		const webRtcServer = await worker.createWebRtcServer({
+			listenInfos: [ {
+				protocol: 'udp',
+				ip: this.ip,
+				announcedIp: this.announcedIp,
+			}, {
+				protocol: 'tcp',
+				ip: this.ip,
+				announcedIp: this.announcedIp,
+			} ]
+		});
+
+		workerData.webRtcServer = webRtcServer;
+
 		logger.debug('startWorker() worker started [workerPid: %s]', worker.pid);
 
 		this.workers.add(worker);
@@ -141,9 +157,9 @@ export default class MediaService {
 
 	@skipIfClosed
 	public async startWorkers({
-		rtcMinPort = 40000,
-		rtcMaxPort = 49999,
-		numberOfWorkers = os.cpus().length,
+		rtcMinPort,
+		rtcMaxPort,
+		numberOfWorkers,
 	}: MediaServiceOptions): Promise<void> {
 		logger.debug('startWorkers() [numberOfWorkers: %s]', numberOfWorkers);
 
@@ -203,6 +219,7 @@ export default class MediaService {
 						} ],
 						appData: {
 							roomId,
+							webRtcServer: workerData.webRtcServer,
 							workerPid: worker.pid,
 							pipeTransports: new Map<string, PipeTransport>(),
 							webRtcTransports: new Map<string, WebRtcTransport>(),

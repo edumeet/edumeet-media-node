@@ -47,7 +47,10 @@ export const createTransportMiddleware = ({
 			}
 
 			case 'createPipeTransport': {
-				const { routerId } = message.data;
+				const {
+					routerId,
+					enableSrtp = true,
+				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
 
@@ -57,7 +60,7 @@ export const createTransportMiddleware = ({
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
 					listenIp: { ip: mediaService.ip, announcedIp: mediaService.announcedIp },
-					enableSrtp: true,
+					enableSrtp,
 					enableSctp: true,
 					enableRtx: true,
 				});
@@ -149,7 +152,7 @@ export const createTransportMiddleware = ({
 
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createWebRtcTransport({
-					listenIps: [ { ip: mediaService.ip, announcedIp: mediaService.announcedIp } ],
+					webRtcServer: routerData.webRtcServer,
 					initialAvailableOutgoingBitrate: mediaService.initialAvailableOutgoingBitrate,
 					enableSctp: Boolean(sctpCapabilities),
 					numSctpStreams: (sctpCapabilities ?? {}).numStreams,

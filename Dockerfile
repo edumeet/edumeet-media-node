@@ -6,7 +6,7 @@ ENV LISTEN_PORT=$listenPort
 ARG rtcMinPort=40000
 ENV RTC_MIN_PORT=$rtcMinPort
 
-ARG rtcMaxPort=49999
+ARG rtcMaxPort=40249
 ENV RTC_MAX_PORT=$rtcMaxPort
 
 WORKDIR /usr/src/app
