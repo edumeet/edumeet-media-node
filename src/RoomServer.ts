@@ -82,11 +82,11 @@ export default class RoomServer extends EventEmitter {
 			this.consumerMiddleware
 		);
 
+		this.roomServerConnection.ready = true;
+
 		this.roomServerConnection.notify({
 			method: 'mediaNodeReady',
-			data: {
-				workers: this.mediaService.workers.items.length
-			}
+			data: {}
 		});
 	}
 }

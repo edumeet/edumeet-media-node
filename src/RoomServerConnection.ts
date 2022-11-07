@@ -4,15 +4,18 @@ import { BaseConnection, InboundRequest } from './signaling/BaseConnection';
 import { SocketMessage } from './signaling/SignalingInterface';
 import { Pipeline } from './common/middleware';
 import { skipIfClosed } from './common/decorators';
+import { List } from './common/list';
 
 const logger = new Logger('RoomServerConnection');
 
 interface RoomServerConnectionOptions {
+	roomId: string;
 	connection: BaseConnection;
 }
 
 export interface RoomServerConnectionContext {
 	roomServerConnection: RoomServerConnection;
+	connectionId: string;
 	message: SocketMessage;
 	response: Record<string, unknown>;
 	handled: boolean;
@@ -28,18 +31,21 @@ export declare interface RoomServerConnection {
 
 export class RoomServerConnection extends EventEmitter {
 	public closed = false;
-	public connection: BaseConnection;
+	public roomId: string;
+	public ready = false;
+	public connections = List<BaseConnection>();
 	public pipeline = Pipeline<RoomServerConnectionContext>();
 
 	constructor({
+		roomId,
 		connection,
 	}: RoomServerConnectionOptions) {
 		logger.debug('constructor()');
 
 		super();
 
-		this.connection = connection;
-		this.handleConnection();
+		this.roomId = roomId;
+		this.addConnection(connection);
 	}
 
 	@skipIfClosed
@@ -48,19 +54,23 @@ export class RoomServerConnection extends EventEmitter {
 
 		this.closed = true;
 
-		this.connection.close();
+		this.connections.items.forEach((c) => c.close());
+		this.connections.clear();
 
 		this.emit('close');
 	}
 
 	@skipIfClosed
-	private handleConnection(): void {
-		logger.debug('addConnection()');
+	public addConnection(connection: BaseConnection): void {
+		logger.debug('addConnection() [roomId: %s]', this.roomId);
 
-		this.connection.on('notification', async (notification) => {
+		this.connections.add(connection);
+
+		connection.on('notification', async (notification) => {
 			try {
 				const context = {
 					roomServerConnection: this,
+					connectionId: connection.id,
 					message: notification,
 					response: {},
 					handled: false,
@@ -71,14 +81,15 @@ export class RoomServerConnection extends EventEmitter {
 				if (!context.handled)
 					throw new Error('no middleware handled the notification');
 			} catch (error) {
-				logger.error('notification() [error: %o]', error);
+				logger.error('notification() [roomId: %s, error: %o]', this.roomId, error);
 			}
 		});
 
-		this.connection.on('request', async (request, respond, reject) => {
+		connection.on('request', async (request, respond, reject) => {
 			try {
 				const context = {
 					roomServerConnection: this,
+					connectionId: connection.id,
 					message: request,
 					response: {},
 					handled: false,
@@ -94,34 +105,38 @@ export class RoomServerConnection extends EventEmitter {
 					reject('Server error');
 				}
 			} catch (error) {
-				logger.error('request() [error: %o]', error);
+				logger.error('request() [roomId: %s, error: %o]', this.roomId, error);
 
 				reject('Server error');
 			}
 		});
 
-		this.connection.once('close', () => this.close());
+		connection.once('close', () => {
+			this.connections.remove(connection);
+
+			if (this.connections.length === 0)
+				this.close();
+		});
+
+		if (this.ready)
+			connection.notify({ method: 'mediaNodeReady', data: {} });
 	}
 
 	@skipIfClosed
-	public async notify(notification: SocketMessage): Promise<void> {
-		logger.debug('notify() [method: %s]', notification.method);
+	public notify(
+		notification: SocketMessage,
+		excludeConnectionId?: string
+	): void {
+		logger.debug('notify() [roomId: %s, method: %s]', this.roomId, notification.method);
 
-		try {
-			return await this.connection.notify(notification);
-		} catch (error) {
-			logger.error('notify() [error: %o]', error);
-		}
-	}
+		this.connections.items.forEach((c) => {
+			if (c.id === excludeConnectionId) return;
 
-	@skipIfClosed
-	public async request(request: SocketMessage): Promise<unknown> {
-		logger.debug('request() [method: %s]', request.method);
-
-		try {
-			return await this.connection.request(request);
-		} catch (error) {
-			logger.error('request() [error: %o]', error);
-		}
+			try {
+				c.notify(notification);
+			} catch (error) {
+				logger.error('notify() [roomId: %s, error: %o]', this.roomId, error);
+			}
+		});
 	}
 }
