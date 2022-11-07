@@ -24,7 +24,7 @@
 		"typescript": "^4.8.4"
 	},
 	"dependencies": {
-		"@observertc/sfu-monitor-js": "1.1.0-SNAPSHOT.b342b9e54b6f87291cc6f53e0396872375c5a24e",
+		"@observertc/sfu-monitor-js": "1.1.0-SNAPSHOT.bfaa4d8e2da170d992fe1ea4920d4e659e0226b1",
 		"debug": "^4.3.4",
 		"mediasoup": "havfo/mediasoup#v3",
 		"minimist": "^1.2.7",
