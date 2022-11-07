@@ -563,13 +563,11 @@ const runMediasoupObserver = () => {
 };
 
 export const interactiveServer = (
-	mediaService: MediaService,
 	roomServerConnections: Map<string, RoomServerConnection>,
 	roomServers: Map<string, RoomServer>
 ) => {
 	runMediasoupObserver();
 
-	global.mediaService = mediaService;
 	global.roomServerConnections = roomServerConnections;
 	global.roomServers = roomServers;
 	global.workers = workers;
@@ -593,4 +591,8 @@ export const interactiveServer = (
 	server.listen(SOCKET_PATH, () => {
 		logger.debug('InteractiveServer listening [socket: %s}', SOCKET_PATH);
 	});
+};
+
+export const interactiveServerAddMediaService = (mediaService: MediaService) => {
+	global.mediaService = mediaService;
 };

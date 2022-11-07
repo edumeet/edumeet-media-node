@@ -49,7 +49,7 @@ export const createTransportMiddleware = ({
 			case 'createPipeTransport': {
 				const {
 					routerId,
-					enableSrtp = true,
+					internal = false,
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -59,10 +59,13 @@ export const createTransportMiddleware = ({
 
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
-					listenIp: { ip: mediaService.ip, announcedIp: mediaService.announcedIp },
-					enableSrtp,
+					listenIp: {
+						ip: internal ? '127.0.0.1' : mediaService.ip,
+						announcedIp: internal ? undefined : mediaService.announcedIp
+					},
+					enableSrtp: !internal,
 					enableSctp: true,
-					enableRtx: true,
+					enableRtx: !internal,
 				});
 
 				routerData.pipeTransports.set(transport.id, transport);

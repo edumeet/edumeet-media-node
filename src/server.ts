@@ -7,7 +7,7 @@ import https from 'https';
 import { Server as IOServer } from 'socket.io';
 import { Logger } from './common/logger';
 import { SocketIOConnection } from './signaling/SocketIOConnection';
-import { interactiveServer } from './interactiveServer';
+import { interactiveServer, interactiveServerAddMediaService } from './interactiveServer';
 import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
@@ -74,6 +74,8 @@ const showUsage = () => {
 	const roomServerConnections = new Map<string, RoomServerConnection>();
 	const roomServers = new Map<string, RoomServer>();
 
+	interactiveServer(roomServerConnections, roomServers);
+
 	const mediaService = await MediaService.create({
 		ip,
 		announcedIp,
@@ -89,7 +91,7 @@ const showUsage = () => {
 		return process.exit(1);
 	});
 
-	interactiveServer(mediaService, roomServerConnections, roomServers);
+	interactiveServerAddMediaService(mediaService);
 
 	const httpsServer = https.createServer({
 		cert: fs.readFileSync(cert),
