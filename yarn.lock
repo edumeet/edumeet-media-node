@@ -87,10 +87,10 @@
   resolved "https://registry.yarnpkg.com/@observertc/schemas/-/schemas-2.2.0-SNAPSHOT.76ae1ca0f3d9e6e983157e0cd23fae026d1e530c.tgz#5660c77d9dedcd5346dfa3b520db99e9b27f4a78"
   integrity sha512-xnA7OMFBAeOTAUjr0ieI5ABqV6fIGmBYCHoz+08L0w6COsYRsfUJ7ZtsIPQCljgBc1euvu5y/e1/TkFqPuriWw==
 
-"@observertc/sfu-monitor-js@1.1.0-SNAPSHOT.912297b4acedb72edd0d71a5a0c070e77463d5be":
-  version "1.1.0-SNAPSHOT.912297b4acedb72edd0d71a5a0c070e77463d5be"
-  resolved "https://registry.yarnpkg.com/@observertc/sfu-monitor-js/-/sfu-monitor-js-1.1.0-SNAPSHOT.912297b4acedb72edd0d71a5a0c070e77463d5be.tgz#073f476313319254baed8595025e8d112c95e534"
-  integrity sha512-chPbh4Ocj26t8lHg5rVFOX4l7eEw3Lc0o1/S2tjgxTD+m//55gqSibI+Z9ewvKm4wyVMvImBZj0TfcMtPoLTfA==
+"@observertc/sfu-monitor-js@1.1.0-SNAPSHOT.b342b9e54b6f87291cc6f53e0396872375c5a24e":
+  version "1.1.0-SNAPSHOT.b342b9e54b6f87291cc6f53e0396872375c5a24e"
+  resolved "https://registry.yarnpkg.com/@observertc/sfu-monitor-js/-/sfu-monitor-js-1.1.0-SNAPSHOT.b342b9e54b6f87291cc6f53e0396872375c5a24e.tgz#8cf7230c3d28c0ff2ac091ebb436f43589b710b6"
+  integrity sha512-XXpN6l5Y7qAndrg1iCXNzHPp8+GhSy6bGwEHKRH6c9b/zUeSlAPSYtCM2PTx6sUC8y1l+oqoICz3MuZI5Ks8XA==
   dependencies:
     "@observertc/schemas" "^2.2.0-SNAPSHOT.7208c09b8e6eaff4c4b3a07666f21eec96ef96f0"
     "@types/events" "^3.0.0"

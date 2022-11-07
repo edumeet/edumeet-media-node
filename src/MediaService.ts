@@ -17,8 +17,7 @@ import { Producer } from 'mediasoup/node/lib/Producer';
 import { DataProducer } from 'mediasoup/node/lib/DataProducer';
 import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
 import { WebRtcServer } from 'mediasoup/node/lib/WebRtcServer';
-import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction } from '@observertc/sfu-monitor-js';
-import { PlainTransport } from 'mediasoup/node/lib/types';
+import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 
 const logger = new Logger('MediaService');
 
@@ -360,11 +359,8 @@ export default class MediaService {
 	@skipIfClosed
 	private createMonitor(): MediasoupMonitor {
 		const getTransportType: TransportTypeFunction = (transport) => {
-			if (transport instanceof WebRtcTransport) return 'webrtc-transport';
-			if (transport instanceof PlainTransport) return 'plain-rtp-transport';
-			if (transport instanceof PipeTransport) return 'pipe-transport';
 
-			return 'direct-transport';
+			return transport.constructor.name as MediasoupTransportType;
 		};
 
 		const config: MediasoupMonitorConfig = {
@@ -372,7 +368,12 @@ export default class MediaService {
 			samplingPeriodInMs: 30000,
 			mediasoup,
 			mediasoupCollectors: {
-				getTransportType
+				getTransportType,
+				pollTransportStats: () => true,
+				pollConsumerStats: () => true,
+				pollProducerStats: () => true,
+				pollDataProducerStats: () => true,
+				pollDataConsumerStats: () => true,
 			}
 		};
 
