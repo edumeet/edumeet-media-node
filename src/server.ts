@@ -5,12 +5,11 @@ import fs from 'fs';
 import os from 'os';
 import https from 'https';
 import { Server as IOServer } from 'socket.io';
-import { Logger } from './common/logger';
-import { SocketIOConnection } from './signaling/SocketIOConnection';
 import { interactiveServer, interactiveServerAddMediaService } from './interactiveServer';
 import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
+import { IOServerConnection, Logger } from 'edumeet-common';
 
 const logger = new Logger('MediaNode');
 
@@ -137,7 +136,7 @@ const showUsage = () => {
 		if (!roomServerConnection) {
 			roomServerConnection = new RoomServerConnection({
 				roomId,
-				connection: new SocketIOConnection(socket)
+				connection: new IOServerConnection(socket)
 			});
 
 			roomServerConnections.set(roomId, roomServerConnection);
@@ -152,7 +151,7 @@ const showUsage = () => {
 			roomServers.set(roomId, roomServer);
 			roomServer.once('close', () => roomServers.delete(roomId));
 		} else
-			roomServerConnection.addConnection(new SocketIOConnection(socket));
+			roomServerConnection.addConnection(new IOServerConnection(socket));
 	});
 
 	const close = () => {

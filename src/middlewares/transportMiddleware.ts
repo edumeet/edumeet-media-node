@@ -1,5 +1,4 @@
-import { Logger } from '../common/logger';
-import { Middleware } from '../common/middleware';
+import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';

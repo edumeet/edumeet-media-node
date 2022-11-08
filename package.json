@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"debug": "^4.3.4",
+		"edumeet-common": "edumeet/edumeet-common",
 		"mediasoup": "havfo/mediasoup#v3",
 		"minimist": "^1.2.7",
 		"socket.io": "^4.5.3"
