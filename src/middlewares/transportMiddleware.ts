@@ -17,7 +17,6 @@ export const createTransportMiddleware = ({
 	) => {
 		const {
 			roomServerConnection,
-			connectionId,
 			message,
 			response
 		} = context;
@@ -46,19 +45,6 @@ export const createTransportMiddleware = ({
 				});
 
 				routerData.pipeTransports.set(transport.id, transport);
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'newPipeTransport',
-					data: {
-						routerId,
-						pipeTransportId: transport.id,
-						ip: transport.tuple.localIp,
-						port: transport.tuple.localPort,
-						srtpParameters: transport.srtpParameters,
-					}
-				}, connectionId);
-
 				transport.observer.once('close', () => {
 					routerData.pipeTransports.delete(transport.id);
 
@@ -69,7 +55,7 @@ export const createTransportMiddleware = ({
 								routerId,
 								pipeTransportId: transport.id
 							}
-						}, transport.appData.remoteClosedBy as string);
+						});
 					}
 				});
 
@@ -101,7 +87,6 @@ export const createTransportMiddleware = ({
 					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
 
 				await transport.connect(transportOptions);
-
 				context.handled = true;
 
 				break;
@@ -125,7 +110,6 @@ export const createTransportMiddleware = ({
 					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
 
 				transport.appData.remoteClosed = true;
-				transport.appData.remoteClosedBy = connectionId;
 				transport.close();
 				context.handled = true;
 
@@ -156,20 +140,6 @@ export const createTransportMiddleware = ({
 				});
 
 				routerData.webRtcTransports.set(transport.id, transport);
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'newWebRtcTransport',
-					data: {
-						routerId,
-						transportId: transport.id,
-						iceParameters: transport.iceParameters,
-						iceCandidates: transport.iceCandidates,
-						dtlsParameters: transport.dtlsParameters,
-						sctpParameters: transport.sctpParameters,
-					}
-				}, connectionId);
-
 				transport.observer.once('close', () => {
 					routerData.webRtcTransports.delete(transport.id);
 
@@ -180,7 +150,7 @@ export const createTransportMiddleware = ({
 								routerId,
 								transportId: transport.id
 							}
-						}, transport.appData.remoteClosedBy as string);
+						});
 					}
 				});
 
@@ -190,7 +160,7 @@ export const createTransportMiddleware = ({
 				response.dtlsParameters = transport.dtlsParameters;
 				response.sctpParameters = transport.sctpParameters;
 				context.handled = true;
-				
+
 				if (mediaService.maxIncomingBitrate) {
 					(async () => {
 						await transport.setMaxIncomingBitrate(mediaService.maxIncomingBitrate);
@@ -248,7 +218,6 @@ export const createTransportMiddleware = ({
 					throw new Error(`transport with id "${transportId}" not found`);
 
 				transport.appData.remoteClosed = true;
-				transport.appData.remoteClosedBy = connectionId;
 				transport.close();
 				context.handled = true;
 
@@ -269,19 +238,7 @@ export const createTransportMiddleware = ({
 				if (!transport)
 					throw new Error(`transport with id "${transportId}" not found`);
 
-				const iceParameters = await transport.restartIce();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'restartedIce',
-					data: {
-						routerId,
-						transportId,
-						iceParameters
-					}
-				}, connectionId);
-
-				response.iceParameters = iceParameters;
+				response.iceParameters = await transport.restartIce();
 				context.handled = true;
 
 				break;

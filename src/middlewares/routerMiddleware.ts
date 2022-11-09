@@ -16,28 +16,18 @@ export const createRouterMiddleware = ({
 	) => {
 		const {
 			roomServerConnection,
-			connectionId,
 			message,
 			response
 		} = context;
 
 		switch (message.method) {
 			case 'getRouter': {
-				const router = await mediaService.getRouter(roomServerConnection.roomId);
+				const { roomId } = message.data;
+				const router = await mediaService.getRouter(roomId);
 
 				// This could be a new router, but it could also be an existing one.
-				if (!roomServer.routers.has(router.id)) {
+				if (!roomServer.routers.has(router.id))
 					roomServer.routers.set(router.id, router);
-
-					// Notify any other room servers that might be connected
-					roomServerConnection.notify({
-						method: 'newRouter',
-						data: {
-							routerId: router.id,
-							rtpCapabilities: router.rtpCapabilities
-						}
-					}, connectionId);
-				}
 
 				router.observer.on('close', () => {
 					roomServer.routers.delete(router.id);
@@ -48,7 +38,7 @@ export const createRouterMiddleware = ({
 							data: {
 								routerId: router.id
 							}
-						}, router.appData.remoteClosedBy as string);
+						});
 					}
 				});
 
@@ -67,7 +57,6 @@ export const createRouterMiddleware = ({
 					throw new Error(`router with id "${routerId}" not found`);
 
 				router.appData.remoteClosed = true;
-				router.appData.remoteClosedBy = connectionId;
 				router.close();
 				context.handled = true;
 

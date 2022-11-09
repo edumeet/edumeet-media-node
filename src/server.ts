@@ -123,35 +123,32 @@ const showUsage = () => {
 			socket.id
 		);
 
-		const {
-			roomId,
-			secret: connectionSecret
-		} = socket.handshake.query;
+		const { secret: connectionSecret } = socket.handshake.query;
 
-		if (typeof roomId !== 'string' || connectionSecret !== secret)
+		if (connectionSecret !== secret) {
+			logger.error(
+				'invalid secret [socketId: %s]',
+				socket.id
+			);
+
 			return socket.disconnect(true);
+		}
 
-		let roomServerConnection = roomServerConnections.get(roomId);
+		const roomServerConnection = new RoomServerConnection({
+			connection: new IOServerConnection(socket)
+		});
 
-		if (!roomServerConnection) {
-			roomServerConnection = new RoomServerConnection({
-				roomId,
-				connection: new IOServerConnection(socket)
-			});
+		roomServerConnections.set(socket.id, roomServerConnection);
+		roomServerConnection.once('close', () =>
+			roomServerConnections.delete(socket.id));
 
-			roomServerConnections.set(roomId, roomServerConnection);
-			roomServerConnection.once('close', () =>
-				roomServerConnections.delete(roomId));
+		const roomServer = new RoomServer({
+			mediaService,
+			roomServerConnection
+		});
 
-			const roomServer = new RoomServer({
-				mediaService,
-				roomServerConnection
-			});
-	
-			roomServers.set(roomId, roomServer);
-			roomServer.once('close', () => roomServers.delete(roomId));
-		} else
-			roomServerConnection.addConnection(new IOServerConnection(socket));
+		roomServers.set(socket.id, roomServer);
+		roomServer.once('close', () => roomServers.delete(socket.id));
 	});
 
 	const close = () => {

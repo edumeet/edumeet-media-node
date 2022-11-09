@@ -16,7 +16,6 @@ export const createConsumerMiddleware = ({
 	) => {
 		const {
 			roomServerConnection,
-			connectionId,
 			message,
 			response
 		} = context;
@@ -53,20 +52,6 @@ export const createConsumerMiddleware = ({
 
 				routerData.pipeConsumers.set(pipeConsumer.id, pipeConsumer);
 
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'newPipeConsumer',
-					data: {
-						routerId,
-						pipeTransportId,
-						pipeConsumerId: pipeConsumer.id,
-						producerId: producer.id,
-						kind: pipeConsumer.kind,
-						producerPaused: pipeConsumer.producerPaused,
-						rtpParameters: pipeConsumer.rtpParameters,
-					}
-				}, connectionId);
-
 				pipeConsumer.observer.once('close', () => {
 					routerData.pipeConsumers.delete(pipeConsumer.id);
 
@@ -77,7 +62,7 @@ export const createConsumerMiddleware = ({
 								routerId,
 								pipeConsumerId: pipeConsumer.id
 							}
-						}, pipeConsumer.appData.remoteClosedBy as string);
+						});
 					}
 				});
 
@@ -128,7 +113,6 @@ export const createConsumerMiddleware = ({
 					throw new Error(`pipeConsumer with id "${pipeConsumerId}" not found`);
 
 				pipeConsumer.appData.remoteClosed = true;
-				pipeConsumer.appData.remoteClosedBy = connectionId;
 				pipeConsumer.close();
 				context.handled = true;
 
@@ -169,22 +153,6 @@ export const createConsumerMiddleware = ({
 					});
 
 					routerData.consumers.set(consumer.id, consumer);
-
-					// Notify any other room servers that might be connected
-					roomServerConnection.notify({
-						method: 'newConsumer',
-						data: {
-							routerId,
-							transportId,
-							consumerId: consumer.id,
-							producerId: producer.id,
-							kind: consumer.kind,
-							paused: consumer.paused,
-							producerPaused: consumer.producerPaused,
-							rtpParameters: consumer.rtpParameters,
-						}
-					}, connectionId);
-
 					consumer.observer.once('close', () => {
 						routerData.consumers.delete(consumer.id);
 
@@ -195,7 +163,7 @@ export const createConsumerMiddleware = ({
 									routerId,
 									consumerId: consumer.id
 								}
-							}, consumer.appData.remoteClosedBy as string);
+							});
 						}
 					});
 			
@@ -261,7 +229,6 @@ export const createConsumerMiddleware = ({
 					throw new Error(`consumer with id "${consumerId}" not found`);
 
 				consumer.appData.remoteClosed = true;
-				consumer.appData.remoteClosedBy = connectionId;
 				consumer.close();
 				context.handled = true;
 
@@ -283,16 +250,6 @@ export const createConsumerMiddleware = ({
 					throw new Error(`consumer with id "${consumerId}" not found`);
 
 				await consumer.pause();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'consumerPaused',
-					data: {
-						routerId,
-						consumerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;
@@ -313,16 +270,6 @@ export const createConsumerMiddleware = ({
 					throw new Error(`consumer with id "${consumerId}" not found`);
 
 				await consumer.resume();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'consumerResumed',
-					data: {
-						routerId,
-						consumerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;

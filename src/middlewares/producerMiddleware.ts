@@ -16,7 +16,6 @@ export const createProducerMiddleware = ({
 	) => {
 		const {
 			roomServerConnection,
-			connectionId,
 			message,
 			response
 		} = context;
@@ -51,20 +50,6 @@ export const createProducerMiddleware = ({
 				});
 
 				routerData.pipeProducers.set(pipeProducer.id, pipeProducer);
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'newPipeProducer',
-					data: {
-						routerId,
-						pipeTransportId,
-						pipeProducerId: pipeProducer.id,
-						kind: pipeProducer.kind,
-						rtpParameters: pipeProducer.rtpParameters,
-						paused: pipeProducer.paused,
-					}
-				}, connectionId);
-
 				pipeProducer.observer.once('close', () => {
 					routerData.pipeProducers.delete(pipeProducer.id);
 
@@ -75,7 +60,7 @@ export const createProducerMiddleware = ({
 								routerId,
 								pipeProducerId: pipeProducer.id
 							}
-						}, pipeProducer.appData.remoteClosedBy as string);
+						});
 					}
 				});
 
@@ -103,7 +88,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`pipeProducer with id "${pipeProducerId}" not found`);
 
 				pipeProducer.appData.remoteClosed = true;
-				pipeProducer.appData.remoteClosedBy = connectionId;
 				pipeProducer.close();
 				context.handled = true;
 
@@ -128,16 +112,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`pipeProducer with id "${pipeProducerId}" not found`);
 
 				await pipeProducer.pause();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'pipeProducerPaused',
-					data: {
-						routerId,
-						pipeProducerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;
@@ -161,16 +135,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`pipeProducer with id "${pipeProducerId}" not found`);
 
 				await pipeProducer.resume();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'pipeProducerResumed',
-					data: {
-						routerId,
-						pipeProducerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;
@@ -204,20 +168,6 @@ export const createProducerMiddleware = ({
 					});
 
 					routerData.producers.set(producer.id, producer);
-
-					// Notify any other room servers that might be connected
-					roomServerConnection.notify({
-						method: 'newProducer',
-						data: {
-							routerId,
-							transportId,
-							producerId: producer.id,
-							kind: producer.kind,
-							rtpParameters: producer.rtpParameters,
-							paused: producer.paused,
-						}
-					}, connectionId);
-
 					producer.observer.once('close', () => {
 						routerData.producers.delete(producer.id);
 
@@ -228,7 +178,7 @@ export const createProducerMiddleware = ({
 									routerId,
 									producerId: producer.id
 								}
-							}, producer.appData.remoteClosedBy as string);
+							});
 						}
 					});
 
@@ -265,7 +215,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`producer with id "${producerId}" not found`);
 
 				producer.appData.remoteClosed = true;
-				producer.appData.remoteClosedBy = connectionId;
 				producer.close();
 				context.handled = true;
 
@@ -287,16 +236,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`producer with id "${producerId}" not found`);
 
 				await producer.pause();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'producerPaused',
-					data: {
-						routerId,
-						producerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;
@@ -317,16 +256,6 @@ export const createProducerMiddleware = ({
 					throw new Error(`producer with id "${producerId}" not found`);
 
 				await producer.resume();
-
-				// Notify any other room servers that might be connected
-				roomServerConnection.notify({
-					method: 'producerResumed',
-					data: {
-						routerId,
-						producerId
-					}
-				}, connectionId);
-
 				context.handled = true;
 
 				break;
