@@ -261,6 +261,148 @@ export const createProducerMiddleware = ({
 				break;
 			}
 
+			case 'createPipeDataProducer': {
+				const {
+					routerId,
+					pipeTransportId,
+					dataProducerId,
+					sctpStreamParameters,
+					label,
+					protocol,
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
+
+				if (!pipeTransport)
+					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
+
+				const pipeDataProducer = await pipeTransport.produceData({
+					id: dataProducerId,
+					sctpStreamParameters,
+					label,
+					protocol,
+				});
+
+				routerData.pipeDataProducers.set(pipeDataProducer.id, pipeDataProducer);
+				pipeDataProducer.observer.once('close', () => {
+					routerData.pipeDataProducers.delete(pipeDataProducer.id);
+
+					if (!pipeDataProducer.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'pipeDataProducerClosed',
+							data: {
+								routerId,
+								pipeDataProducerId: pipeDataProducer.id
+							}
+						});
+					}
+				});
+
+				response.id = pipeDataProducer.id;
+				context.handled = true;
+
+				break;
+			}
+
+			case 'closePipeDataProducer': {
+				const { routerId, pipeDataProducerId } = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const pipeDataProducer = routerData.pipeDataProducers.get(pipeDataProducerId);
+
+				if (!pipeDataProducer)
+					throw new Error(`pipeDataProducer with id "${pipeDataProducerId}" not found`);
+
+				pipeDataProducer.appData.remoteClosed = true;
+				pipeDataProducer.close();
+				context.handled = true;
+
+				break;
+			}
+
+			case 'produceData': {
+				const {
+					routerId,
+					transportId,
+					sctpStreamParameters,
+					label,
+					protocol,
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const transport = routerData.webRtcTransports.get(transportId);
+
+				if (!transport)
+					throw new Error(`transport with id "${transportId}" not found`);
+
+				try {
+					const dataProducer = await transport.produceData({
+						sctpStreamParameters,
+						label,
+						protocol,
+					});
+
+					routerData.dataProducers.set(dataProducer.id, dataProducer);
+					dataProducer.observer.once('close', () => {
+						routerData.dataProducers.delete(dataProducer.id);
+
+						if (!dataProducer.appData.remoteClosed) {
+							roomServerConnection.notify({
+								method: 'dataProducerClosed',
+								data: {
+									routerId,
+									dataProducerId: dataProducer.id
+								}
+							});
+						}
+					});
+
+					response.id = dataProducer.id;
+					context.handled = true;
+				} catch (error) {
+					throw new Error('produceData failed');
+				}
+
+				break;
+			}
+
+			case 'closeDataProducer': {
+				const { routerId, dataProducerId } = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const dataProducer = routerData.dataProducers.get(dataProducerId);
+
+				if (!dataProducer)
+					throw new Error(`dataProducer with id "${dataProducerId}" not found`);
+
+				dataProducer.appData.remoteClosed = true;
+				dataProducer.close();
+				context.handled = true;
+
+				break;
+			}
+
 			default: {
 				break;
 			}
