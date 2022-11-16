@@ -369,7 +369,7 @@ export default class MediaService {
 			mediasoup,
 			mediasoupCollectors: {
 				getTransportType,
-				pollTransportStats: () => true,
+				pollTransportStats: () => Math.random() < 0.3,
 				pollConsumerStats: () => true,
 				pollProducerStats: () => true,
 				pollDataProducerStats: () => true,
