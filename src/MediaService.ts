@@ -61,6 +61,8 @@ interface MediaServiceOptions {
 	rtcMinPort: number;
 	rtcMaxPort: number;
 	numberOfWorkers: number;
+	useObserveRTC: boolean;
+	pollStatsProbability: number;
 }
 
 export default class MediaService {
@@ -81,7 +83,7 @@ export default class MediaService {
 	public maxIncomingBitrate: number;
 	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
-	public readonly monitor: MediasoupMonitor;
+	public readonly monitor?: MediasoupMonitor;
 
 	constructor({
 		ip,
@@ -89,6 +91,8 @@ export default class MediaService {
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
+		useObserveRTC,
+		pollStatsProbability,
 	}: MediaServiceOptions) {
 		logger.debug('constructor()');
 
@@ -97,7 +101,7 @@ export default class MediaService {
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
-		this.monitor = this.createMonitor();
+		this.monitor = useObserveRTC ? this.createMonitor(pollStatsProbability) : undefined;
 	}
 
 	@skipIfClosed
@@ -357,9 +361,18 @@ export default class MediaService {
 	}
 
 	@skipIfClosed
-	private createMonitor(): MediasoupMonitor {
-		const getTransportType: TransportTypeFunction = (transport) => {
+	private createMonitor(pollStatsProbability: number): MediasoupMonitor {
+		let pollStats: () => boolean;
 
+		if (pollStatsProbability <= 0.0) {
+			pollStats = () => false;
+		} else if (1.0 <= pollStatsProbability) {
+			pollStats = () => true;
+		} else {
+			pollStats = () => Math.random() <= pollStatsProbability;
+		}
+
+		const getTransportType: TransportTypeFunction = (transport) => {
 			return transport.constructor.name as MediasoupTransportType;
 		};
 
@@ -369,11 +382,11 @@ export default class MediaService {
 			mediasoup,
 			mediasoupCollectors: {
 				getTransportType,
-				pollTransportStats: () => Math.random() < 0.3,
-				pollConsumerStats: () => true,
-				pollProducerStats: () => true,
-				pollDataProducerStats: () => true,
-				pollDataConsumerStats: () => true,
+				pollTransportStats: pollStats,
+				pollConsumerStats: pollStats,
+				pollProducerStats: pollStats,
+				pollDataProducerStats: pollStats,
+				pollDataConsumerStats: pollStats,
 			}
 		};
 

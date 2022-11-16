@@ -42,6 +42,10 @@ const showUsage = () => {
 	logger.debug('    The upper bound port for mediasoup transport.\n\n');
 	logger.debug('  --numberOfWorkers <num> (optional, default: number of host cores)');
 	logger.debug('    The number of mediasoup workers to create.\n\n');
+	logger.debug('  --useObserveRTC <boolean> (optional, default: true)');
+	logger.debug('    Flag indicate to use ObserveRTC plugin for monitoring the SFU.\n\n');
+	logger.debug('  --pollStatsProbability <[0..1]> (optional, default: 1.0)');
+	logger.debug('    The probability of polling stats by the monitor from transports, producers, consumers, dataProducers or dataConsumers.\n\n');
 };
 
 (async () => {
@@ -61,6 +65,8 @@ const showUsage = () => {
 		rtcMinPort = 40000,
 		rtcMaxPort = 40249,
 		numberOfWorkers = os.cpus().length,
+		useObserveRTC = true,
+		pollStatsProbability = 1.0,
 	} = minimist(process.argv.slice(2));
 	
 	if (!ip || help || usage) {
@@ -83,6 +89,8 @@ const showUsage = () => {
 		rtcMinPort,
 		rtcMaxPort,
 		numberOfWorkers,
+		useObserveRTC,
+		pollStatsProbability,
 	}).catch((error) => {
 		logger.error('MediaService creation failed: %o', error);
 
