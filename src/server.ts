@@ -10,6 +10,7 @@ import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
 import { IOServerConnection, Logger } from 'edumeet-common';
+import { createHttpEndpoints } from './httpEndpoints';
 
 const logger = new Logger('MediaNode');
 
@@ -92,6 +93,8 @@ const showUsage = () => {
 
 	interactiveServerAddMediaService(mediaService);
 
+	const httpEndpoints = createHttpEndpoints(mediaService);
+
 	const httpsServer = https.createServer({
 		cert: fs.readFileSync(cert),
 		key: fs.readFileSync(key),
@@ -108,6 +111,8 @@ const showUsage = () => {
 		].join(':'),
 		honorCipherOrder: true
 	});
+
+	httpsServer.on('request', httpEndpoints);
 
 	httpsServer.listen({ port: listenPort, host: listenHost }, () =>
 		logger.debug('httpsServer.listen() [port: %s]', listenPort));

@@ -49,6 +49,11 @@ export interface RouterData {
 	remoteClose?: boolean;
 }
 
+interface MetricsData {
+	consumers: number;
+	routers: number;
+}
+
 interface MediaServiceOptions {
 	ip: string;
 	announcedIp?: string;
@@ -103,6 +108,21 @@ export default class MediaService {
 
 		this.workers.items.forEach((w) => w.close());
 		this.workers.clear();
+	}
+
+	public getMetrics(): Record<string, MetricsData> {
+		const metrics: Record<string, MetricsData> = {};
+
+		this.workers.items.forEach((worker) => {
+			const workerData = worker.appData as unknown as WorkerData;
+
+			metrics[worker.pid] = {
+				consumers: workerData.consumers.size,
+				routers: workerData.routersByRoomId.size,
+			};
+		});
+
+		return metrics;
 	}
 
 	@skipIfClosed
