@@ -1,5 +1,4 @@
-import { Logger } from '../common/logger';
-import { Middleware } from '../common/middleware';
+import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
@@ -23,33 +22,10 @@ export const createTransportMiddleware = ({
 		} = context;
 
 		switch (message.method) {
-			case 'canConsume': {
-				const {
-					routerId,
-					producerId,
-					rtpCapabilities
-				} = message.data;
-
-				const router = roomServer.routers.get(routerId);
-
-				if (!router)
-					throw new Error(`router with id "${routerId}" not found`);
-
-				const canConsume = router.canConsume({
-					producerId,
-					rtpCapabilities
-				});
-
-				response.canConsume = canConsume;
-				context.handled = true;
-
-				break;
-			}
-
 			case 'createPipeTransport': {
 				const {
 					routerId,
-					enableSrtp = true,
+					internal = false,
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -59,10 +35,13 @@ export const createTransportMiddleware = ({
 
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
-					listenIp: { ip: mediaService.ip, announcedIp: mediaService.announcedIp },
-					enableSrtp,
+					listenIp: {
+						ip: internal ? '127.0.0.1' : mediaService.ip,
+						announcedIp: internal ? undefined : mediaService.announcedIp
+					},
+					enableSrtp: !internal,
 					enableSctp: true,
-					enableRtx: true,
+					enableRtx: !internal,
 				});
 
 				routerData.pipeTransports.set(transport.id, transport);
@@ -108,7 +87,6 @@ export const createTransportMiddleware = ({
 					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
 
 				await transport.connect(transportOptions);
-
 				context.handled = true;
 
 				break;
@@ -182,7 +160,7 @@ export const createTransportMiddleware = ({
 				response.dtlsParameters = transport.dtlsParameters;
 				response.sctpParameters = transport.sctpParameters;
 				context.handled = true;
-				
+
 				if (mediaService.maxIncomingBitrate) {
 					(async () => {
 						await transport.setMaxIncomingBitrate(mediaService.maxIncomingBitrate);

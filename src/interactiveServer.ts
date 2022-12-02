@@ -12,10 +12,10 @@ import { Producer } from 'mediasoup/node/lib/Producer';
 import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { DataProducer } from 'mediasoup/node/lib/DataProducer';
 import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
-import { Logger } from './common/logger';
 import MediaService from './MediaService';
 import { RoomServerConnection } from './RoomServerConnection';
 import RoomServer from './RoomServer';
+import { Logger } from 'edumeet-common';
 
 const SOCKET_PATH_UNIX = '/tmp/edumeet-media-node.sock';
 const SOCKET_PATH_WIN = path.join('\\\\?\\pipe', process.cwd(), 'edumeet-media-node');
@@ -563,13 +563,11 @@ const runMediasoupObserver = () => {
 };
 
 export const interactiveServer = (
-	mediaService: MediaService,
 	roomServerConnections: Map<string, RoomServerConnection>,
 	roomServers: Map<string, RoomServer>
 ) => {
 	runMediasoupObserver();
 
-	global.mediaService = mediaService;
 	global.roomServerConnections = roomServerConnections;
 	global.roomServers = roomServers;
 	global.workers = workers;
@@ -593,4 +591,8 @@ export const interactiveServer = (
 	server.listen(SOCKET_PATH, () => {
 		logger.debug('InteractiveServer listening [socket: %s}', SOCKET_PATH);
 	});
+};
+
+export const interactiveServerAddMediaService = (mediaService: MediaService) => {
+	global.mediaService = mediaService;
 };

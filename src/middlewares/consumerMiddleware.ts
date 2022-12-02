@@ -1,5 +1,4 @@
-import { Logger } from '../common/logger';
-import { Middleware } from '../common/middleware';
+import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RouterData } from '../MediaService';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
@@ -52,7 +51,6 @@ export const createConsumerMiddleware = ({
 				});
 
 				routerData.pipeConsumers.set(pipeConsumer.id, pipeConsumer);
-
 				pipeConsumer.observer.once('close', () => {
 					routerData.pipeConsumers.delete(pipeConsumer.id);
 
@@ -154,7 +152,6 @@ export const createConsumerMiddleware = ({
 					});
 
 					routerData.consumers.set(consumer.id, consumer);
-
 					consumer.observer.once('close', () => {
 						routerData.consumers.delete(consumer.id);
 
@@ -170,7 +167,7 @@ export const createConsumerMiddleware = ({
 					});
 			
 					consumer.on('producerpause', () => roomServerConnection.notify({
-						method: 'consumerPaused',
+						method: 'consumerProducerPaused',
 						data: {
 							routerId,
 							consumerId: consumer.id
@@ -178,7 +175,7 @@ export const createConsumerMiddleware = ({
 					}));
 			
 					consumer.on('producerresume', () => roomServerConnection.notify({
-						method: 'consumerResumed',
+						method: 'consumerProducerResumed',
 						data: {
 							routerId,
 							consumerId: consumer.id
@@ -330,6 +327,148 @@ export const createConsumerMiddleware = ({
 					throw new Error(`consumer with id "${consumerId}" not found`);
 
 				await consumer.requestKeyFrame();
+				context.handled = true;
+
+				break;
+			}
+
+			case 'createPipeDataConsumer': {
+				const { routerId, pipeTransportId, dataProducerId } = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const pipeTransport = routerData.pipeTransports.get(pipeTransportId);
+
+				if (!pipeTransport)
+					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
+
+				const dataProducer =
+					routerData.dataProducers.get(dataProducerId) ??
+					routerData.pipeDataProducers.get(dataProducerId);
+
+				if (!dataProducer)
+					throw new Error(`dataProducer with id "${dataProducerId}" not found`);
+
+				const pipeDataConsumer = await pipeTransport.consumeData({
+					dataProducerId: dataProducer.id,
+				});
+
+				routerData.pipeDataConsumers.set(pipeDataConsumer.id, pipeDataConsumer);
+				pipeDataConsumer.observer.once('close', () => {
+					routerData.pipeDataConsumers.delete(pipeDataConsumer.id);
+
+					if (!pipeDataConsumer.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'pipeDataConsumerClosed',
+							data: {
+								routerId,
+								pipeDataConsumerId: pipeDataConsumer.id
+							}
+						});
+					}
+				});
+
+				response.id = pipeDataConsumer.id;
+				response.sctpStreamParameters = pipeDataConsumer.sctpStreamParameters;
+				response.label = pipeDataConsumer.label;
+				response.protocol = pipeDataConsumer.protocol;
+				context.handled = true;
+
+				break;
+			}
+
+			case 'closePipeDataConsumer': {
+				const { routerId, pipeDataConsumerId } = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const pipeDataConsumer = routerData.pipeDataConsumers.get(pipeDataConsumerId);
+
+				if (!pipeDataConsumer)
+					throw new Error(`pipeDataConsumer with id "${pipeDataConsumerId}" not found`);
+
+				pipeDataConsumer.appData.remoteClosed = true;
+				pipeDataConsumer.close();
+				context.handled = true;
+
+				break;
+			}
+
+			case 'consumeData': {
+				const {
+					routerId,
+					transportId,
+					dataProducerId,
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const transport = routerData.webRtcTransports.get(transportId);
+
+				if (!transport)
+					throw new Error(`transport with id "${transportId}" not found`);
+
+				const dataProducer =
+					routerData.dataProducers.get(dataProducerId) ??
+					routerData.pipeDataProducers.get(dataProducerId);
+
+				if (!dataProducer)
+					throw new Error(`dataProducer with id "${dataProducerId}" not found`);
+
+				const dataConsumer = await transport.consumeData({ dataProducerId });
+				
+				routerData.dataConsumers.set(dataConsumer.id, dataConsumer);
+				dataConsumer.observer.once('close', () => {
+					routerData.dataConsumers.delete(dataConsumer.id);
+
+					if (!dataConsumer.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'dataConsumerClosed',
+							data: {
+								routerId,
+								dataConsumerId: dataConsumer.id
+							}
+						});
+					}
+				});
+
+				response.id = dataConsumer.id;
+				response.sctpStreamParameters = dataConsumer.sctpStreamParameters;
+				response.label = dataConsumer.label;
+				response.protocol = dataConsumer.protocol;
+				context.handled = true;
+
+				break;
+			}
+
+			case 'closeDataConsumer': {
+				const { routerId, dataConsumerId } = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const dataConsumer = routerData.dataConsumers.get(dataConsumerId);
+
+				if (!dataConsumer)
+					throw new Error(`dataConsumer with id "${dataConsumerId}" not found`);
+
+				dataConsumer.appData.remoteClosed = true;
+				dataConsumer.close();
 				context.handled = true;
 
 				break;

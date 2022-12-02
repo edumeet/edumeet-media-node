@@ -5,12 +5,12 @@ import fs from 'fs';
 import os from 'os';
 import https from 'https';
 import { Server as IOServer } from 'socket.io';
-import { Logger } from './common/logger';
-import { SocketIOConnection } from './signaling/SocketIOConnection';
-import { interactiveServer } from './interactiveServer';
+import { interactiveServer, interactiveServerAddMediaService } from './interactiveServer';
 import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
+import { IOServerConnection, Logger } from 'edumeet-common';
+import { createHttpEndpoints } from './httpEndpoints';
 
 const logger = new Logger('MediaNode');
 
@@ -80,6 +80,8 @@ const showUsage = () => {
 	const roomServerConnections = new Map<string, RoomServerConnection>();
 	const roomServers = new Map<string, RoomServer>();
 
+	interactiveServer(roomServerConnections, roomServers);
+
 	const mediaService = await MediaService.create({
 		ip,
 		announcedIp,
@@ -97,7 +99,9 @@ const showUsage = () => {
 		return process.exit(1);
 	});
 
-	interactiveServer(mediaService, roomServerConnections, roomServers);
+	interactiveServerAddMediaService(mediaService);
+
+	const httpEndpoints = createHttpEndpoints(mediaService);
 
 	const httpsServer = https.createServer({
 		cert: fs.readFileSync(cert),
@@ -115,6 +119,8 @@ const showUsage = () => {
 		].join(':'),
 		honorCipherOrder: true
 	});
+
+	httpsServer.on('request', httpEndpoints);
 
 	httpsServer.listen({ port: listenPort, host: listenHost }, () =>
 		logger.debug('httpsServer.listen() [port: %s]', listenPort));
@@ -142,7 +148,7 @@ const showUsage = () => {
 		}
 
 		const roomServerConnection = new RoomServerConnection({
-			connection: new SocketIOConnection(socket)
+			connection: new IOServerConnection(socket)
 		});
 
 		roomServerConnections.set(socket.id, roomServerConnection);

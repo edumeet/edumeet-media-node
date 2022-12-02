@@ -1,9 +1,13 @@
 import EventEmitter from 'events';
-import { Logger } from './common/logger';
-import { BaseConnection, InboundRequest } from './signaling/BaseConnection';
-import { SocketMessage } from './signaling/SignalingInterface';
-import { Pipeline } from './common/middleware';
-import { skipIfClosed } from './common/decorators';
+import {
+	BaseConnection,
+	InboundNotification,
+	InboundRequest,
+	Logger,
+	Pipeline,
+	skipIfClosed,
+	SocketMessage
+} from 'edumeet-common';
 
 const logger = new Logger('RoomServerConnection');
 
@@ -21,7 +25,7 @@ export interface RoomServerConnectionContext {
 /* eslint-disable no-unused-vars */
 export declare interface RoomServerConnection {
 	on(event: 'close', listener: () => void): this;
-	on(event: 'notification', listener: (notification: SocketMessage) => void): this;
+	on(event: 'notification', listener: InboundNotification): this;
 	on(event: 'request', listener: InboundRequest): this;
 }
 /* eslint-enable no-unused-vars */
@@ -54,7 +58,7 @@ export class RoomServerConnection extends EventEmitter {
 	}
 
 	@skipIfClosed
-	private handleConnection(): void {
+	public handleConnection(): void {
 		logger.debug('addConnection()');
 
 		this.connection.on('notification', async (notification) => {
@@ -104,11 +108,11 @@ export class RoomServerConnection extends EventEmitter {
 	}
 
 	@skipIfClosed
-	public async notify(notification: SocketMessage): Promise<void> {
+	public notify(notification: SocketMessage): void {
 		logger.debug('notify() [method: %s]', notification.method);
 
 		try {
-			return await this.connection.notify(notification);
+			this.connection.notify(notification);
 		} catch (error) {
 			logger.error('notify() [error: %o]', error);
 		}

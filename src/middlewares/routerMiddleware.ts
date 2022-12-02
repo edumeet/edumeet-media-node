@@ -1,5 +1,4 @@
-import { Logger } from '../common/logger';
-import { Middleware } from '../common/middleware';
+import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
 
@@ -59,6 +58,29 @@ export const createRouterMiddleware = ({
 
 				router.appData.remoteClosed = true;
 				router.close();
+				context.handled = true;
+
+				break;
+			}
+
+			case 'canConsume': {
+				const {
+					routerId,
+					producerId,
+					rtpCapabilities
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const canConsume = router.canConsume({
+					producerId,
+					rtpCapabilities
+				});
+
+				response.canConsume = canConsume;
 				context.handled = true;
 
 				break;

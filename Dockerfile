@@ -13,14 +13,9 @@ WORKDIR /usr/src/app
 
 RUN apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -yq build-essential python3-pip; apt-get clean
 
-COPY package.json ./
-COPY tsconfig.json ./
-COPY yarn.lock ./
-
-RUN yarn install
-
 COPY . .
 
+RUN yarn install --frozen-lockfile
 RUN yarn run build
 
 EXPOSE ${LISTEN_PORT}
