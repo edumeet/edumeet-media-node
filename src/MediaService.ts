@@ -382,7 +382,10 @@ export default class MediaService {
 			mediasoup,
 			mediasoupCollectors: {
 				getTransportType,
-				pollTransportStats: pollStats,
+				pollDirectTransportStats: pollStats,
+				pollPlainRtpTransportStats: pollStats,
+				pollWebRtcTransportStats: pollStats,
+				pollPipeTransportStats: pollStats,
 				pollConsumerStats: pollStats,
 				pollProducerStats: pollStats,
 				pollDataProducerStats: pollStats,
