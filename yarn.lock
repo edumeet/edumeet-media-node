@@ -82,17 +82,17 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@observertc/schemas@^2.2.0-SNAPSHOT.7208c09b8e6eaff4c4b3a07666f21eec96ef96f0":
-  version "2.2.0-SNAPSHOT.76ae1ca0f3d9e6e983157e0cd23fae026d1e530c"
-  resolved "https://registry.yarnpkg.com/@observertc/schemas/-/schemas-2.2.0-SNAPSHOT.76ae1ca0f3d9e6e983157e0cd23fae026d1e530c.tgz#5660c77d9dedcd5346dfa3b520db99e9b27f4a78"
-  integrity sha512-xnA7OMFBAeOTAUjr0ieI5ABqV6fIGmBYCHoz+08L0w6COsYRsfUJ7ZtsIPQCljgBc1euvu5y/e1/TkFqPuriWw==
+"@observertc/schemas@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@observertc/schemas/-/schemas-2.2.0.tgz#c03f3d2ada6992ce6a29175407c2e58d8cec0fd5"
+  integrity sha512-Zfxn7odAHNTJMzRHTSy5zsud9VC7wwNY7hYbnrb0K6c0XevWuV9k21NyouJseogpDoTcT9+XGiez7f4S8sQ5NA==
 
-"@observertc/sfu-monitor-js@1.1.0-SNAPSHOT.8d0c3acceae446ee456a7ab8fdf38e00bf6aba39":
-  version "1.1.0-SNAPSHOT.8d0c3acceae446ee456a7ab8fdf38e00bf6aba39"
-  resolved "https://registry.yarnpkg.com/@observertc/sfu-monitor-js/-/sfu-monitor-js-1.1.0-SNAPSHOT.8d0c3acceae446ee456a7ab8fdf38e00bf6aba39.tgz#a132e9f977a3720bc9e1d70f4fb575bd8dbd8b50"
-  integrity sha512-K7jqmevnPLVrW4CS8W0J/TqaUnf9HI3LpY+kmGPiN5ugN6894EMk6ta4nwSMtxDy3zBZ95mebwGcclOPzLRMTg==
+"@observertc/sfu-monitor-js@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@observertc/sfu-monitor-js/-/sfu-monitor-js-1.1.0.tgz#0798ce63c8ca0448157a4ea1b8238cfbb0ae1c13"
+  integrity sha512-w9IH+an0slY/L/gxmZxiW0ETdocZeUHmHCtGv+Tv+bcCeFRw5RMLyO94/sDP4oMjR43gsDi41dea53fE93z++Q==
   dependencies:
-    "@observertc/schemas" "^2.2.0-SNAPSHOT.7208c09b8e6eaff4c4b3a07666f21eec96ef96f0"
+    "@observertc/schemas" "^2.2.0"
     "@types/events" "^3.0.0"
     "@types/uuid" "^8.3.4"
     "@types/ws" "^8.5.3"
