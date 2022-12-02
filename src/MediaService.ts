@@ -384,10 +384,10 @@ export default class MediaService {
 
 		if (pollStatsProbability <= 0.0) {
 			pollStats = () => false;
-		} else if (1.0 <= pollStatsProbability) {
-			pollStats = () => true;
-		} else {
+		} else if (pollStatsProbability < 1.0) {
 			pollStats = () => Math.random() <= pollStatsProbability;
+		} else {
+			pollStats = () => true;	
 		}
 
 		const getTransportType: TransportTypeFunction = (transport) => {
