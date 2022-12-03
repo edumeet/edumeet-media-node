@@ -14,6 +14,7 @@ import { Producer } from 'mediasoup/node/lib/Producer';
 import { DataProducer } from 'mediasoup/node/lib/DataProducer';
 import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
 import { WebRtcServer } from 'mediasoup/node/lib/WebRtcServer';
+import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
 const logger = new Logger('MediaService');
@@ -63,6 +64,8 @@ interface MediaServiceOptions {
 	rtcMinPort: number;
 	rtcMaxPort: number;
 	numberOfWorkers: number;
+	useObserveRTC: boolean;
+	pollStatsProbability: number;
 }
 
 export default class MediaService {
@@ -83,6 +86,7 @@ export default class MediaService {
 	public maxIncomingBitrate: number;
 	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
+	public readonly monitor?: MediasoupMonitor;
 
 	constructor({
 		ip,
@@ -90,6 +94,8 @@ export default class MediaService {
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
+		useObserveRTC,
+		pollStatsProbability,
 	}: MediaServiceOptions) {
 		logger.debug('constructor()');
 
@@ -98,6 +104,7 @@ export default class MediaService {
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
+		this.monitor = useObserveRTC ? this.createMonitor(pollStatsProbability) : undefined;
 	}
 
 	@skipIfClosed
@@ -369,5 +376,41 @@ export default class MediaService {
 		);
 
 		return this.getOrCreateRouter(roomId, leastLoadedWorkers[0]);
+	}
+
+	@skipIfClosed
+	private createMonitor(pollStatsProbability: number): MediasoupMonitor {
+		let pollStats: () => boolean;
+
+		if (pollStatsProbability <= 0.0) {
+			pollStats = () => false;
+		} else if (pollStatsProbability < 1.0) {
+			pollStats = () => Math.random() <= pollStatsProbability;
+		} else {
+			pollStats = () => true;	
+		}
+
+		const getTransportType: TransportTypeFunction = (transport) => {
+			return transport.constructor.name as MediasoupTransportType;
+		};
+
+		const config: MediasoupMonitorConfig = {
+			collectingPeriodInMs: 5000,
+			samplingPeriodInMs: 30000,
+			mediasoup,
+			mediasoupCollectors: {
+				getTransportType,
+				pollDirectTransportStats: pollStats,
+				pollPlainRtpTransportStats: pollStats,
+				pollWebRtcTransportStats: pollStats,
+				pollPipeTransportStats: pollStats,
+				pollConsumerStats: pollStats,
+				pollProducerStats: pollStats,
+				pollDataProducerStats: pollStats,
+				pollDataConsumerStats: pollStats,
+			}
+		};
+
+		return createMediasoupMonitor(config);
 	}
 }
