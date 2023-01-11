@@ -218,7 +218,10 @@ export default class MediaService {
 	}
 
 	@skipIfClosed
-	private async getOrCreateRouter(roomId: string, worker: Worker): Promise<Router> {
+	private async getOrCreateRouterPromise(
+		roomId: string, 
+		worker: Worker
+	): Promise<Router> {
 		logger.debug('getOrCreateRouter() [roomId: %s, workerPid: %s]', roomId, worker.pid);
 
 		const workerData = worker.appData as unknown as WorkerData;
@@ -316,7 +319,7 @@ export default class MediaService {
 		if (roomRouters.length === 0) {
 			logger.debug('getRouter() first client [roomId: %s]', roomId);
 
-			return this.getOrCreateRouter(roomId, leastLoadedWorkers[0]);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
 		}
 
 		const leastLoadedRoomWorkerPids = roomRouters.map((router) =>
@@ -336,7 +339,7 @@ export default class MediaService {
 				leastLoadedRoomWorkerData.consumers.size
 			);
 
-			return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		const leastLoadedWorkerData =
@@ -349,7 +352,7 @@ export default class MediaService {
 				leastLoadedRoomWorkerData.consumers.size
 			);
 
-			return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		if (
@@ -362,7 +365,7 @@ export default class MediaService {
 				leastLoadedRoomWorkerData.consumers.size
 			);
 
-			return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		logger.debug(
@@ -371,7 +374,7 @@ export default class MediaService {
 			leastLoadedWorkerData.consumers.size
 		);
 
-		return this.getOrCreateRouter(roomId, leastLoadedWorkers[0]);
+		return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
 	}
 
 	@skipIfClosed
