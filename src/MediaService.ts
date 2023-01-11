@@ -327,6 +327,8 @@ export default class MediaService {
 		const leastLoadedRoomWorkerData =
 			leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
 
+		// Consumer count is the best measurement available for load
+		// 500 has proven to be a good break point.
 		if (leastLoadedRoomWorkerData.consumers.size < 500) {
 			logger.debug(
 				'getRouter() worker has capacity [roomId: %s, load: %s]',
