@@ -324,25 +324,21 @@ export default class MediaService {
 		const leastLoadedRoomWorkers = leastLoadedWorkers
 			.filter((worker) => leastLoadedRoomWorkerPids.includes(worker.pid));
 
-		for (const worker of leastLoadedRoomWorkers) {
-			const workerData = worker.appData as unknown as WorkerData;
+		const leastLoadedRoomWorkerData =
+			leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
 
-			if (workerData.consumers.size < 500) {
-				logger.debug(
-					'getRouter() worker has capacity [roomId: %s, load: %s]',
-					roomId,
-					workerData.consumers.size
-				);
+		if (leastLoadedRoomWorkerData.consumers.size < 500) {
+			logger.debug(
+				'getRouter() worker has capacity [roomId: %s, load: %s]',
+				roomId,
+				leastLoadedRoomWorkerData.consumers.size
+			);
 
-				return this.getOrCreateRouter(roomId, worker);
-			}
+			return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		const leastLoadedWorkerData =
 			leastLoadedWorkers[0].appData as unknown as WorkerData;
-
-		const leastLoadedRoomWorkerData =
-			leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
 
 		if (leastLoadedRoomWorkers[0].pid === leastLoadedWorkers[0].pid) {
 			logger.debug(
