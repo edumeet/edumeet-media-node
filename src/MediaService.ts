@@ -55,7 +55,7 @@ interface MetricsData {
 	routers: number;
 }
 
-interface MediaServiceOptions {
+export interface MediaServiceOptions {
 	ip: string;
 	announcedIp?: string;
 	initialAvailableOutgoingBitrate: number;
