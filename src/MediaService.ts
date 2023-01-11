@@ -218,7 +218,10 @@ export default class MediaService {
 	}
 
 	@skipIfClosed
-	private async getOrCreateRouter(roomId: string, worker: Worker): Promise<Router> {
+	private async getOrCreateRouterPromise(
+		roomId: string, 
+		worker: Worker
+	): Promise<Router> {
 		logger.debug('getOrCreateRouter() [roomId: %s, workerPid: %s]', roomId, worker.pid);
 
 		const workerData = worker.appData as unknown as WorkerData;
@@ -265,7 +268,7 @@ export default class MediaService {
 						router.id,
 						worker.pid
 					);
-	
+
 					router.observer.once('close', () => {
 						logger.debug(
 							'getOrCreateRouter() router closed [roomId: %s, routerId: %s, workerId: %s]',
@@ -273,15 +276,15 @@ export default class MediaService {
 							router?.id,
 							worker.pid
 						);
-	
+
 						workerData.routersByRoomId.delete(roomId);
 					});
-	
+
 					const { rtpCapabilities } = router;
-	
+
 					rtpCapabilities.headerExtensions = rtpCapabilities.headerExtensions?.filter(
 						(ext: RtpHeaderExtension) => ext.uri !== 'urn:3gpp:video-orientation');
-	
+
 					resolve(router);
 				} catch (error) {
 					router?.close();
@@ -316,7 +319,7 @@ export default class MediaService {
 		if (roomRouters.length === 0) {
 			logger.debug('getRouter() first client [roomId: %s]', roomId);
 
-			return this.getOrCreateRouter(roomId, leastLoadedWorkers[0]);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
 		}
 
 		const leastLoadedRoomWorkerPids = roomRouters.map((router) =>
@@ -324,49 +327,45 @@ export default class MediaService {
 		const leastLoadedRoomWorkers = leastLoadedWorkers
 			.filter((worker) => leastLoadedRoomWorkerPids.includes(worker.pid));
 
-		for (const worker of leastLoadedRoomWorkers) {
-			const workerData = worker.appData as unknown as WorkerData;
+		const leastLoadedRoomWorkerData =
+			leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
 
-			if (workerData.consumers.size < 500) {
-				logger.debug(
-					'getRouter() worker has capacity [roomId: %s, load: %s]',
-					roomId,
-					workerData.consumers.size
-				);
+		// Consumer count is the best measurement available for load
+		// 500 has proven to be a good break point.
+		if (leastLoadedRoomWorkerData.consumers.size < 500) {
+			logger.debug(
+				'getRouter() worker has capacity [roomId: %s, load: %s]',
+				roomId,
+				leastLoadedRoomWorkerData.consumers.size
+			);
 
-				return this.getOrCreateRouter(roomId, worker);
-			}
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		const leastLoadedWorkerData =
 			leastLoadedWorkers[0].appData as unknown as WorkerData;
 
-		if (leastLoadedRoomWorkers.length > 0) {
-			const leastLoadedRoomWorkerData =
-				leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
+		if (leastLoadedRoomWorkers[0].pid === leastLoadedWorkers[0].pid) {
+			logger.debug(
+				'getRouter() room worker least loaded [roomId: %s, load: %s]',
+				roomId,
+				leastLoadedRoomWorkerData.consumers.size
+			);
 
-			if (leastLoadedRoomWorkers[0].pid === leastLoadedWorkers[0].pid) {
-				logger.debug(
-					'getRouter() room worker least loaded [roomId: %s, load: %s]',
-					roomId,
-					leastLoadedRoomWorkerData.consumers.size
-				);
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
+		}
 
-				return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
-			}
+		if (
+			leastLoadedRoomWorkerData.consumers.size -
+			leastLoadedWorkerData.consumers.size < 100
+		) {
+			logger.debug(
+				'getRouter() low delta [roomId: %s, load: %s]',
+				roomId,
+				leastLoadedRoomWorkerData.consumers.size
+			);
 
-			if (
-				leastLoadedRoomWorkerData.consumers.size -
-				leastLoadedWorkerData.consumers.size < 100
-			) {
-				logger.debug(
-					'getRouter() low delta [roomId: %s, load: %s]',
-					roomId,
-					leastLoadedRoomWorkerData.consumers.size
-				);
-
-				return this.getOrCreateRouter(roomId, leastLoadedRoomWorkers[0]);
-			}
+			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		logger.debug(
@@ -375,7 +374,7 @@ export default class MediaService {
 			leastLoadedWorkerData.consumers.size
 		);
 
-		return this.getOrCreateRouter(roomId, leastLoadedWorkers[0]);
+		return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
 	}
 
 	@skipIfClosed
@@ -387,7 +386,7 @@ export default class MediaService {
 		} else if (pollStatsProbability < 1.0) {
 			pollStats = () => Math.random() <= pollStatsProbability;
 		} else {
-			pollStats = () => true;	
+			pollStats = () => true;
 		}
 
 		const getTransportType: TransportTypeFunction = (transport) => {
