@@ -9,11 +9,7 @@ import MediaService, { MediaServiceOptions } from '../src/MediaService';
 import MockWorker from './__mocks__/WorkerMock';
 import EventEmitter from 'events';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
-const sleep = async (ms: number) => {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-};
+import TestUtils from './TestUtils';
 
 const emptyMediaServiceOptions = {} as unknown as MediaServiceOptions;
 const optionsWithWorkers = {
@@ -64,7 +60,7 @@ test('should restart worker if it dies', async () => {
 
 	await mockWorker.emit('died', new Error);
 	
-	await sleep(1000);
+	await TestUtils.sleep(10);
 	expect(spyRemoveWorker).toHaveBeenCalledTimes(1);
 	expect(spyAddWorker).toHaveBeenCalledTimes(2);
 	expect(sut.workers.length).toBe(1);
