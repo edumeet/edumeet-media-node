@@ -11,7 +11,7 @@ import {
 
 const logger = new Logger('RoomServerConnection');
 
-interface RoomServerConnectionOptions {
+export interface RoomServerConnectionOptions {
 	connection: BaseConnection;
 }
 
