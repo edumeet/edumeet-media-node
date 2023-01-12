@@ -11,9 +11,9 @@
 		"prodstart": "node dist/server.js",
 		"lint": "eslint . --ext .ts",
 		"connect": "node connect.js",
-		"test": "jest",
-		"test:coverage": "jest --coverage --coverageDirectory coverage",
-		"test:watch": "jest --watch"
+		"test": "jest /*.test.ts",
+		"test:coverage": "jest /*.test.ts --coverage --coverageDirectory coverage",
+		"test:watch": "jest /*.test.ts --watch"
 	},
 	"devDependencies": {
 		"@tsconfig/node18": "^1.0.1",
