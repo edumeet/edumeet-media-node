@@ -14,7 +14,7 @@ import { Logger, Middleware, skipIfClosed } from 'edumeet-common';
 
 const logger = new Logger('RoomServer');
 
-interface RoomServerOptions {
+export interface RoomServerOptions {
 	mediaService: MediaService;
 	roomServerConnection: RoomServerConnection;
 }
