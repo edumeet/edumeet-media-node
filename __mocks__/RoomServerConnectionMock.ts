@@ -1,6 +1,6 @@
 import { Pipeline } from 'edumeet-common';
 import EventEmitter from 'events';
-import { RoomServerConnectionContext } from '../../src/RoomServerConnection';
+import { RoomServerConnectionContext } from '../src/RoomServerConnection';
 
 export default class RoomServerConnectionMock extends EventEmitter {
 	pipeline = {
