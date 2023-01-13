@@ -7,7 +7,9 @@ export default class RouterMock {
 		pipeTransports: new Map(),
 		pipeConsumers: new Map(),
 		producers: new Map(),
-		pipeProducers: new Map()
+		pipeProducers: new Map(),
+		webRtcTransports: new Map(),
+		consumers: new Map()
 	};
 	constructor(producer?: Producer, transport?: Transport, consumer?: Consumer) {
 		if (producer) {
@@ -16,6 +18,7 @@ export default class RouterMock {
 		}
 		if (transport) {
 			this.appData.pipeTransports.set(transport.id, transport);
+			this.appData.webRtcTransports.set(transport.id, transport);
 		}
 		if (consumer) {
 			this.appData.pipeConsumers.set(consumer.id, consumer);
