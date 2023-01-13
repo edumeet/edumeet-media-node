@@ -9,4 +9,8 @@ export default class MediaServiceMock extends EventEmitter {
 		super();
 		this.workers = List<Worker>();
 	}
+
+	getMetrics = () => {
+		return { 1: { consumers: 10, routers: 2 } };
+	};
 }
