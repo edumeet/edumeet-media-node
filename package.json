@@ -11,9 +11,9 @@
 		"prodstart": "node dist/server.js",
 		"lint": "eslint . --ext .ts",
 		"connect": "node connect.js",
-		"test": "jest /*.test.ts",
-		"test:coverage": "jest /*.test.ts --coverage --coverageDirectory coverage",
-		"test:watch": "jest /*.test.ts --watch"
+		"test": "jest",
+		"test:coverage": "jest --coverage --coverageDirectory coverage",
+		"test:watch": "jest --watch"
 	},
 	"devDependencies": {
 		"@tsconfig/node18": "^1.0.1",
@@ -42,6 +42,7 @@
 		"utf-8-validate": "^5.0.10"
 	},
 	"jest": {
-		"preset": "ts-jest"
+		"preset": "ts-jest",
+		"modulePathIgnorePatterns": ["<rootDir>/dist"]
 	}
 }
