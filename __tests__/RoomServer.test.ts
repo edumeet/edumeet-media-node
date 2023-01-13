@@ -2,9 +2,9 @@ import { Router } from 'mediasoup/node/lib/Router';
 import MediaService from '../src/MediaService';
 import RoomServer, { RoomServerOptions } from '../src/RoomServer';
 import { RoomServerConnection } from '../src/RoomServerConnection';
-import MediaServiceMock from './__mocks__/MediaServiceMock';
-import RoomServerConnectionMock from './__mocks__/RoomServerConnectionMock';
-import RouterMock from './__mocks__/RouterMock';
+import MediaServiceMock from '../__mocks__/MediaServiceMock';
+import RoomServerConnectionMock from '../__mocks__/RoomServerConnectionMock';
+import RouterMock from '../__mocks__/RouterMock';
 
 test('Constructor - should call notify on roomServerConnection', () => {
 	const mockMediaService = new MediaServiceMock() as unknown as MediaService;

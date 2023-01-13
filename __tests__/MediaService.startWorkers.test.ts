@@ -6,10 +6,10 @@ jest.mock('mediasoup/node/lib/Worker');
 
 import 'jest';
 import MediaService, { MediaServiceOptions } from '../src/MediaService';
-import WorkerMock from './__mocks__/WorkerMock';
+import WorkerMock from '../__mocks__/WorkerMock';
 import EventEmitter from 'events';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
-import TestUtils from './TestUtils';
+import TestUtils from '../__mocks__/TestUtils';
 
 const emptyMediaServiceOptions = {} as unknown as MediaServiceOptions;
 const optionsWithWorkers = {

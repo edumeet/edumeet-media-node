@@ -1,7 +1,7 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { createHttpEndpoints } from '../src/httpEndpoints';
 import MediaService from '../src/MediaService';
-import MediaServiceMock from './__mocks__/MediaServiceMock';
+import MediaServiceMock from '../__mocks__/MediaServiceMock';
 import os, { CpuInfo } from 'os';
 
 test('Health should return 200', () => {

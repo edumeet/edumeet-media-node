@@ -8,7 +8,7 @@ jest.mock('@observertc/sfu-monitor-js');
 import 'jest';
 import MediaService, { MediaServiceOptions, WorkerData } from '../src/MediaService';
 import * as observeRtcMock from '@observertc/sfu-monitor-js';
-import WorkerMock from './__mocks__/WorkerMock';
+import WorkerMock from '../__mocks__/WorkerMock';
 import EventEmitter from 'events';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import { Transport } from 'mediasoup/node/lib/Transport';
