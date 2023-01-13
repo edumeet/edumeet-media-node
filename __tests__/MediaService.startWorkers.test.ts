@@ -6,7 +6,7 @@ jest.mock('mediasoup/node/lib/Worker');
 
 import 'jest';
 import MediaService, { MediaServiceOptions } from '../src/MediaService';
-import MockWorker from './__mocks__/WorkerMock';
+import WorkerMock from './__mocks__/WorkerMock';
 import EventEmitter from 'events';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import TestUtils from './TestUtils';
@@ -28,7 +28,7 @@ test('Factory method - should call startWorkers', async () => {
 
 test('startWorkers() - should have one workers', async () => {
 	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
-	const mockWorker = new MockWorker(spyObserver, 1) as unknown as Worker;
+	const mockWorker = new WorkerMock(spyObserver, 1) as unknown as Worker;
 	const spyCreateWorker = jest.spyOn(mediasoup, 'createWorker').mockImplementation(async () => {
 		return mockWorker;
 	});
@@ -44,7 +44,7 @@ test('startWorkers() - should have one workers', async () => {
 
 test('should restart worker if it dies', async () => {
 	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
-	const mockWorker = new MockWorker(spyObserver, 1) as unknown as Worker;
+	const mockWorker = new WorkerMock(spyObserver, 1) as unknown as Worker;
 	const spyCreateWorker = jest.spyOn(mediasoup, 'createWorker').mockImplementationOnce(async () => {
 		return mockWorker;
 	});

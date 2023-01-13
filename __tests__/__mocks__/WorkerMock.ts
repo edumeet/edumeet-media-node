@@ -2,7 +2,7 @@ import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
 
-export default class MockWorker extends EnhancedEventEmitter {
+export default class WorkerMock extends EnhancedEventEmitter {
 	observer;
 	appData = {
 		routersByRoomId: new Map<string, Promise<Router>>(),
