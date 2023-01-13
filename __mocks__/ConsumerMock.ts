@@ -15,4 +15,6 @@ export default class ConsumerMock {
 	constructor(observer: EventEmitter) {
 		this.observer = observer;
 	}
+
+	close = jest.fn();
 }

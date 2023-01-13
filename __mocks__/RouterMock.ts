@@ -1,3 +1,4 @@
+import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Transport } from 'mediasoup/node/lib/Transport';
 
@@ -8,13 +9,16 @@ export default class RouterMock {
 		producers: new Map(),
 		pipeProducers: new Map()
 	};
-	constructor(producer?: Producer, transport?: Transport) {
+	constructor(producer?: Producer, transport?: Transport, consumer?: Consumer) {
 		if (producer) {
 			this.appData.producers.set(producer.id, producer);
 			this.appData.pipeProducers.set(producer.id, producer);
 		}
 		if (transport) {
 			this.appData.pipeTransports.set(transport.id, transport);
+		}
+		if (consumer) {
+			this.appData.pipeConsumers.set(consumer.id, consumer);
 		}
 	}
 
