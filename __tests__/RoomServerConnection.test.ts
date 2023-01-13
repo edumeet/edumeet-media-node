@@ -1,6 +1,5 @@
-import { BaseConnection, Middleware, Pipeline, SocketMessage } from 'edumeet-common';
+import { BaseConnection, Pipeline, SocketMessage } from 'edumeet-common';
 import { RoomServerConnection, RoomServerConnectionContext, RoomServerConnectionOptions } from '../src/RoomServerConnection';
-import TestUtils from './TestUtils';
 import BaseConnectionMock from './__mocks__/BaseConnectionMock';
 
 const createExecuteSpyAndMock = (handled: boolean) => {
@@ -41,7 +40,6 @@ test('Request event - not handled should call reject', async () => {
 	sut.pipeline = pipelineMock;
 
 	await mockConn.emit('request', request, respond, reject);
-	TestUtils.sleep(100);
 	expect(spyExecute).toHaveBeenCalled();
 	expect(respond).not.toHaveBeenCalledWith();
 	expect(reject).toHaveBeenCalled();
