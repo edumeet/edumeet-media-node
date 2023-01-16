@@ -1,8 +1,11 @@
 import { Consumer } from 'mediasoup/node/lib/Consumer';
+import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Transport } from 'mediasoup/node/lib/Transport';
+import { EventEmitter } from 'stream';
 
 export default class RouterMock {
+	observer;
 	appData = {
 		pipeTransports: new Map(),
 		pipeConsumers: new Map(),
@@ -15,7 +18,12 @@ export default class RouterMock {
 		dataProducers: new Map(),
 		pipeDataProducers: new Map()
 	};
-	constructor(producer?: Producer, transport?: Transport, consumer?: Consumer) {
+	constructor(
+		producer?: Producer,
+		transport?: Transport,
+		consumer?: Consumer,
+		observer?: EventEmitter
+	) {
 		if (producer) {
 			this.appData.producers.set(producer.id, producer);
 			this.appData.pipeProducers.set(producer.id, producer);
@@ -32,7 +40,11 @@ export default class RouterMock {
 			this.appData.pipeDataConsumers.set(consumer.id, consumer);
 			this.appData.dataConsumers.set(consumer.id, consumer);
 		}
+		if (observer) {
+			this.observer = observer;
+		}
 	}
 
 	close = jest.fn();
+	canConsume = jest.fn();
 }

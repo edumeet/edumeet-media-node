@@ -13,4 +13,6 @@ export default class MediaServiceMock extends EventEmitter {
 	getMetrics = () => {
 		return { 1: { consumers: 10, routers: 2 } };
 	};
+
+	getRouter = jest.fn();
 }
