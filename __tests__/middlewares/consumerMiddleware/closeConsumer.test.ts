@@ -6,14 +6,9 @@ import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/
 import RoomServerMock from '../../../__mocks__/RoomServerMock';
 import RouterMock from '../../../__mocks__/RouterMock';
 import ConsumerMock from '../../../__mocks__/ConsumerMock';
-import { Consumer, ConsumerScore } from 'mediasoup/node/lib/Consumer';
+import { Consumer } from 'mediasoup/node/lib/Consumer';
 import EventEmitter from 'events';
-import { Next } from 'edumeet-common';
 import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
-import TransportMock from '../../../__mocks__/TransportMock';
-import ProducerMock from '../../../__mocks__/ProducerMock';
-import { Producer } from 'mediasoup/node/lib/Producer';
-import { Transport } from 'mediasoup/node/lib/Transport';
 
 test('Should close consumer', async () => {
 	const conn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
