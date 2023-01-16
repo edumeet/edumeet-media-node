@@ -126,12 +126,8 @@ describe('createPipeDataConsumer', () => {
 
 		const spyNotify = jest.spyOn(conn, 'notify');
 
-		observer.emit('pause');
-		// expect(spyNotify.mock.calls[0][0].method).toBe('pipeConsumerPaused');
-		observer.emit('resume');
-		// expect(spyNotify.mock.calls[1][0].method).toBe('pipeConsumerResumed');
 		observer.emit('close');
-		// expect(spyNotify.mock.calls[2][0].method).toBe('pipeConsumerClosed');
+		expect(spyNotify.mock.calls[0][0].method).toBe('pipeDataConsumerClosed');
 	});
 
 });
