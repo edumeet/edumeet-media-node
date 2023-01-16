@@ -22,6 +22,7 @@ export default class RouterMock {
 		}
 		if (consumer) {
 			this.appData.pipeConsumers.set(consumer.id, consumer);
+			this.appData.consumers.set(consumer.id, consumer);
 		}
 	}
 
