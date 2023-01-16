@@ -17,7 +17,6 @@ export const createHttpEndpoints = (mediaService: MediaService) => {
 
 		switch (url) {
 			case '/health': {
-				// res.setHeader('Content-Type', 'text/plain');
 				res.writeHead(200, { 'Content-Type': 'text/plain' });
 
 				return res.end('OK');
