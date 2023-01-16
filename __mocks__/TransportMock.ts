@@ -12,5 +12,8 @@ export default class TransportMock {
 	consume = async () => {
 		return this.#consumer ? this.#consumer : {};
 	};
+	consumeData = async () => {
+		return this.#consumer ? this.#consumer : {};
+	};
 	id = 'id';
 }

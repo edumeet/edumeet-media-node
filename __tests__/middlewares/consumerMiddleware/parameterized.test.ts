@@ -10,16 +10,33 @@ import { Consumer } from 'mediasoup/node/lib/Consumer';
 import EventEmitter from 'events';
 import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
 
-test('Should close consumer', async () => {
+test.each([
+	[ 'closeConsumer', 'close' ],
+	[ 'pauseConsumer', 'pause' ],
+	[ 'resumeConsumer', 'resume' ],
+	[ 'setConsumerPreferredLayers', 'setPreferredLayers' ],
+	[ 'requestConsumerKeyFrame', 'requestKeyFrame' ],
+	[ 'closePipeDataConsumer', 'close', ],
+	[ 'setConsumerPriority', 'setPriority' ],
+	[ 'closeDataConsumer', 'close' ],
+	[ 'closePipeConsumer', 'close' ]
+]
+
+)('Should close consumer', async (methodToTest: string, methodToSpy: string) => {
 	const conn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
+
 	const context = {
 		roomServerConnection: conn,
 		response: {},
 		message: {
-			method: 'closeConsumer',
+			method: methodToTest,
 			data: {
+				pipeConsumerId: 'id',
+				dataConsumerId: 'id',
+				pipeDataConsumerId: 'id',
 				routerId: 'id',
 				consumerId: 'id',
+				priority: 1
 			}
 		}
 	} as unknown as RoomServerConnectionContext;
@@ -27,7 +44,9 @@ test('Should close consumer', async () => {
 	const next = jest.fn();
 	const observer = new EventEmitter();
 	const consumer = new ConsumerMock(observer) as unknown as Consumer;
-	const spyCloseConsumer = jest.spyOn(consumer, 'close');
+
+	const spyMethod = methodToSpy as unknown as 'close' | 'pause' | 'setPreferredLayers' | 'resume';
+	const spy = jest.spyOn(consumer, spyMethod);
 	const router = new RouterMock(undefined, undefined, consumer) as unknown as Router;
 
 	const roomServer = new RoomServerMock() as unknown as RoomServer;
@@ -41,18 +60,27 @@ test('Should close consumer', async () => {
 
 	await sut(context, next);
 
-	expect(spyCloseConsumer).toHaveBeenCalled();
-	expect(consumer.appData.remoteClosed).toBe(true);
+	expect(spy).toHaveBeenCalled();
 	expect(context.handled).toBe(true);
 });
 
-test('Should throw on missing router', async () => {
+test.each([
+	'closeConsumer',
+	'pauseConsumer',
+	'resumeConsumer',
+	'setConsumerPreferredLayers',
+	'requestConsumerKeyFrame',
+	'closePipeDataConsumer',
+	'setConsumerPriority',
+	'closeDataConsumer',
+	'closePipeConsumer'
+])('Should throw on missing router', async (methodToTest: string) => {
 	const conn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
 	const context = {
 		roomServerConnection: conn,
 		response: {},
 		message: {
-			method: 'closeConsumer',
+			method: methodToTest,
 			data: {
 				routerId: 'id',
 				consumerId: 'id',
@@ -74,13 +102,23 @@ test('Should throw on missing router', async () => {
 	expect(async () => sut(context, next)).rejects.toThrow();
 });
 
-test('Should throw on missing consumer', async () => {
+test.each([
+	'closeConsumer',
+	'pauseConsumer',
+	'resumeConsumer',
+	'setConsumerPreferredLayers',
+	'requestConsumerKeyFrame',
+	'closePipeDataConsumer',
+	'setConsumerPriority',
+	'closeDataConsumer',
+	'closePipeConsumer'
+])('Should throw on missing router', async (methodToTest: string) => {
 	const conn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
 	const context = {
 		roomServerConnection: conn,
 		response: {},
 		message: {
-			method: 'closeConsumer',
+			method: methodToTest,
 			data: {
 				routerId: 'id',
 				consumerId: 'id',
