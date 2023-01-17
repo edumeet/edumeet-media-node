@@ -71,7 +71,7 @@ test('createPipeDataProducer() should create producer', async () => {
 			method: 'createPipeDataProducer',
 			data: {
 				routerId: 'id',
-				pipeDataProducerId: "id",
+				pipeDataProducerId: 'id',
 				pipeTransportId: 'id'
 			}
 		},
@@ -97,7 +97,6 @@ test('createPipeDataProducer() should create producer', async () => {
 	observer.emit('close');
 	expect(spyNotify.mock.calls[0][0].method).toBe('pipeDataProducerClosed');
 });
-
 
 test('closePipeProducer() should close producer', async () => {
 	const roomServer = new RoomServerMock() as unknown as RoomServer;
@@ -152,7 +151,7 @@ test('produce() should create producer', async () => {
 			data: {
 				routerId: 'id',
 				pipeProducerId: 'id',
-				transportId: "id"
+				transportId: 'id'
 			}
 		},
 		response: {}
@@ -166,15 +165,15 @@ test('produce() should create producer', async () => {
 	jest.spyOn(roomServer.routers, 'get').mockImplementation(() => {
 		return router;
 	});
-	jest.spyOn(transport, "produce").mockImplementation(async () => {
-		return producer
-	})
+	jest.spyOn(transport, 'produce').mockImplementation(async () => {
+		return producer;
+	});
 
 	const spyTransportProduce = jest.spyOn(transport, 'produce');
 
 	await sut(context, next);
 
-	expect(context.response.id).toBe(producer.id)
+	expect(context.response.id).toBe(producer.id);
 	expect(context.handled).toBeTruthy();
 	expect(spyTransportProduce).toHaveBeenCalled();
 });
@@ -194,7 +193,7 @@ test('produce() emit events', async () => {
 			data: {
 				routerId: 'id',
 				pipeProducerId: 'id',
-				transportId: "id"
+				transportId: 'id'
 			}
 		},
 		response: {}
@@ -208,18 +207,19 @@ test('produce() emit events', async () => {
 	jest.spyOn(roomServer.routers, 'get').mockImplementation(() => {
 		return router;
 	});
-	jest.spyOn(transport, "produce").mockImplementation(async () => {
-		return producer
-	})
+	jest.spyOn(transport, 'produce').mockImplementation(async () => {
+		return producer;
+	});
 
 	await sut(context, next);
 
-	const spyNotify = jest.spyOn(conn, "notify")
-	producer.emit("score", [] as unknown as ProducerScore[])
-	expect(spyNotify.mock.calls[0][0].method).toBe("producerScore")
+	const spyNotify = jest.spyOn(conn, 'notify');
 
-	observer.emit("close")
-	expect(spyNotify.mock.calls[1][0].method).toBe("producerClosed")
+	producer.emit('score', [] as unknown as ProducerScore[]);
+	expect(spyNotify.mock.calls[0][0].method).toBe('producerScore');
+
+	observer.emit('close');
+	expect(spyNotify.mock.calls[1][0].method).toBe('producerClosed');
 });
 
 test('produceData() should create data producer', async () => {
@@ -237,7 +237,7 @@ test('produceData() should create data producer', async () => {
 			data: {
 				routerId: 'id',
 				pipeProducerId: 'id',
-				transportId: "id"
+				transportId: 'id'
 			}
 		},
 		response: {}
@@ -251,15 +251,15 @@ test('produceData() should create data producer', async () => {
 	jest.spyOn(roomServer.routers, 'get').mockImplementation(() => {
 		return router;
 	});
-	jest.spyOn(transport, "produceData").mockImplementation(async () => {
-		return producer as unknown as DataProducer
-	})
+	jest.spyOn(transport, 'produceData').mockImplementation(async () => {
+		return producer as unknown as DataProducer;
+	});
 
 	const spyTransportProduce = jest.spyOn(transport, 'produceData');
 
 	await sut(context, next);
 
-	expect(context.response.id).toBe(producer.id)
+	expect(context.response.id).toBe(producer.id);
 	expect(context.handled).toBeTruthy();
 	expect(spyTransportProduce).toHaveBeenCalled();
 });
@@ -279,7 +279,7 @@ test('produceData() emit events', async () => {
 			data: {
 				routerId: 'id',
 				pipeProducerId: 'id',
-				transportId: "id"
+				transportId: 'id'
 			}
 		},
 		response: {}
@@ -293,13 +293,14 @@ test('produceData() emit events', async () => {
 	jest.spyOn(roomServer.routers, 'get').mockImplementation(() => {
 		return router;
 	});
-	jest.spyOn(transport, "produceData").mockImplementation(async () => {
-		return producer as unknown as DataProducer
-	})
+	jest.spyOn(transport, 'produceData').mockImplementation(async () => {
+		return producer as unknown as DataProducer;
+	});
 
 	await sut(context, next);
 
-	const spyNotify = jest.spyOn(conn, "notify")
-	observer.emit("close")
-	expect(spyNotify.mock.calls[0][0].method).toBe("dataProducerClosed")
+	const spyNotify = jest.spyOn(conn, 'notify');
+
+	observer.emit('close');
+	expect(spyNotify.mock.calls[0][0].method).toBe('dataProducerClosed');
 });
