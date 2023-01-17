@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { DataProducer } from 'mediasoup/node/lib/DataProducer';
 import { Producer, ProducerScore } from 'mediasoup/node/lib/Producer';
 import { Router } from 'mediasoup/node/lib/Router';
@@ -8,7 +7,6 @@ import { MiddlewareOptions } from '../../../src/common/types';
 import { createProducerMiddleware } from '../../../src/middlewares/producerMiddleware';
 import RoomServer from '../../../src/RoomServer';
 import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/RoomServerConnection';
-import ConsumerMock from '../../../__mocks__/ConsumerMock';
 import ProducerMock from '../../../__mocks__/ProducerMock';
 import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
 import RoomServerMock from '../../../__mocks__/RoomServerMock';
