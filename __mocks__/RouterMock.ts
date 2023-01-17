@@ -1,5 +1,4 @@
 import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Transport } from 'mediasoup/node/lib/Transport';
 import { EventEmitter } from 'stream';
@@ -47,4 +46,6 @@ export default class RouterMock {
 
 	close = jest.fn();
 	canConsume = jest.fn();
+	createPipeTransport = jest.fn();
+	createWebRtcTransport = jest.fn();
 }

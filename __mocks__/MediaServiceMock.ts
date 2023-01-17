@@ -4,6 +4,10 @@ import { Worker } from 'mediasoup/node/lib/Worker';
 
 export default class MediaServiceMock extends EventEmitter {
 	workers: List<Worker>;
+	ip = '1.1.1.1';
+	announcedIp = '2.2.2.2';
+	maxIncomingBitrate = 100;
+	maxOutgoingBitrate = 100;
 
 	constructor() {
 		super();
