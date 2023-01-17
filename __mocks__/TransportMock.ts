@@ -1,11 +1,16 @@
 import { Consumer } from 'mediasoup/node/lib/Consumer';
+import { Producer } from 'mediasoup/node/lib/Producer';
 
 export default class TransportMock {
 	#consumer;
+	#producer;
 
-	constructor(consumer?: Consumer) {
+	constructor(consumer?: Consumer, producer?: Producer) {
 		if (consumer) {
 			this.#consumer = consumer;
+		}
+		if (producer) {
+			this.#producer = producer;
 		}
 	}
 
@@ -14,6 +19,9 @@ export default class TransportMock {
 	};
 	consumeData = async () => {
 		return this.#consumer ? this.#consumer : {};
+	};
+	produce = async () => {
+		return this.#producer ? this.#producer : {};
 	};
 	id = 'id';
 }
