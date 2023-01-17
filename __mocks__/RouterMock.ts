@@ -47,4 +47,6 @@ export default class RouterMock {
 
 	close = jest.fn();
 	canConsume = jest.fn();
+	createPipeTransport = jest.fn();
+	createWebRtcTransport = jest.fn();
 }
