@@ -1,12 +1,13 @@
 import EventEmitter from 'events';
 
-export default class ProducerMock {
+export default class ProducerMock extends EventEmitter {
 	id = 'id';
 	kind = 'video';
 	observer;
 	appData = { remoteclosed: false };
 
 	constructor(observer?: EventEmitter) {
+		super();
 		if (observer) {
 			this.observer = observer;
 		}
