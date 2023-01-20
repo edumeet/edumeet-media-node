@@ -6,10 +6,11 @@
 	"author": "Håvar Aambø Fosstveit <havar@fosstveit.net>",
 	"license": "MIT",
 	"scripts": {
-		"build": "tsc",
-		"start": "tsc && node dist/server.js",
+		"build": "tsc --build src",
+		"start": "tsc --build src && node dist/server.js",
 		"prodstart": "node dist/server.js",
 		"lint": "eslint . --ext .ts",
+		"lint:fix": "eslint . --ext .ts --fix",
 		"connect": "node connect.js",
 		"test": "jest",
 		"test:coverage": "jest --coverage --coverageDirectory coverage",
@@ -42,11 +43,5 @@
 	"optionalDependencies": {
 		"bufferutil": "^4.0.7",
 		"utf-8-validate": "^5.0.10"
-	},
-	"jest": {
-		"preset": "ts-jest",
-		"modulePathIgnorePatterns": [
-			"<rootDir>/dist"
-		]
 	}
 }
