@@ -1,16 +1,9 @@
-const { defaults: tsjPreset } = require('ts-jest/presets');
-
-/** @returns {Promise<import('jest').Config>} */
-
-module.exports = async () => {
-	return {
-		verbose: true,
-		modulePathIgnorePatterns: [ '<rootDir>/dist' ],
-		transform: {
-			...tsjPreset.transform,
-			'\\.[jt]s$': [
-				'ts-jest', { tsconfig: '<rootDir>/src/tsconfig.json' }
-			]
-		}
-	};
-};
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+module.exports = {
+	modulePathIgnorePatterns: [ '<rootDir>/dist' ],
+	transform: {
+		'^.+\\.[t]s$': [
+			'ts-jest', { tsconfig: 'src/tsconfig.json' }
+		]
+	}
+}
