@@ -12,8 +12,9 @@
 		"lint": "eslint . --ext .ts",
 		"lint:fix": "eslint . --ext .ts --fix",
 		"connect": "node connect.js",
-		"test": "jest",
-		"test:coverage": "jest --coverage --coverageDirectory coverage",
+		"test:unit": "jest __tests__/unit-tests",
+		"test:integration": "jest __tests__/integration-tests",
+		"test:coverage": "jest __tests__/unit-tests --coverage --coverageDirectory coverage",
 		"test:watch": "jest --watch",
 		"prepare": "husky install"
 	},
