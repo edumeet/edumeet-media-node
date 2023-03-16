@@ -121,7 +121,7 @@ test('notify() - should call notify on connection', async () => {
 		connection: mockConn
 	};
 	const notifySpy = jest.spyOn(mockConn, 'notify');
-	const fakeMessage = 'msg' as unknown as SocketMessage; 
+	const fakeMessage = { data: {} } as unknown as SocketMessage; 
 
 	const sut = new RoomServerConnection(options);
 
