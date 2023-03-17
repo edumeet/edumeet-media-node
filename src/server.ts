@@ -46,6 +46,10 @@ const showUsage = () => {
 	logger.debug('    Flag indicate to use ObserveRTC plugin for monitoring the SFU.\n\n');
 	logger.debug('  --pollStatsProbability <[0..1]> (optional, default: 1.0)');
 	logger.debug('    The probability of polling stats by the monitor from transports, producers, consumers, dataProducers or dataConsumers.\n\n');
+	logger.debug('  --cpuPollingInterval <ms> (optional, default: 10000)');
+	logger.debug('    The interval in ms to poll CPU usage.\n\n');
+	logger.debug('  --cpuPercentCascadingLimit <percent> (optional, default: 66)');
+	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
 };
 
 (async () => {
@@ -67,6 +71,8 @@ const showUsage = () => {
 		numberOfWorkers = os.cpus().length,
 		useObserveRTC = true,
 		pollStatsProbability = 1.0,
+		cpuPollingInterval = 10_000,
+		cpuPercentCascadingLimit = 66,
 	} = minimist(process.argv.slice(2));
 	
 	if (!ip || help || usage) {
@@ -93,6 +99,8 @@ const showUsage = () => {
 		numberOfWorkers,
 		useObserveRTC,
 		pollStatsProbability,
+		cpuPollingInterval,
+		cpuPercentCascadingLimit,
 	}).catch((error) => {
 		logger.error('MediaService creation failed: %o', error);
 

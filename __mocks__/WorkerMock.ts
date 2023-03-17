@@ -28,6 +28,10 @@ export default class WorkerMock extends EnhancedEventEmitter {
 		}
 	}
 
+	close = jest.fn();
+
+	getResourceUsage = jest.fn();
+
 	createWebRtcServer = jest.fn();
 	
 	createRouter = ({ mediaCodecs, appData }: RouterOptions) => {
