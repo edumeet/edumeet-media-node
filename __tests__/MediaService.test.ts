@@ -208,9 +208,9 @@ test('getMetrics() - should give correct consumer count on add/remove consumer',
 	const fakeTransport = { observer: spyTransport } as unknown as Transport;
 	const fakeConsumer = { observer: spyConsumer, closed: false, id: 'id' } as unknown as Consumer;
 
-	await spyObserver.emit('newrouter', router1);
-	await spyObserver.emit('newtransport', fakeTransport);
-	await spyTransport.emit('newconsumer', fakeConsumer);
+	spyObserver.emit('newrouter', router1);
+	spyObserver.emit('newtransport', fakeTransport);
+	spyTransport.emit('newconsumer', fakeConsumer);
 
 	metrics = sut.getMetrics();
 	expect(metrics['1'].consumers).toBe(1);
@@ -219,4 +219,6 @@ test('getMetrics() - should give correct consumer count on add/remove consumer',
 	
 	metrics = sut.getMetrics();
 	expect(metrics['1'].consumers).toBe(0);
+
+	sut.close();
 });

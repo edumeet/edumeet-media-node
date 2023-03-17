@@ -93,8 +93,7 @@ export default class MediaService {
 	public readonly monitor?: MediasoupMonitor;
 	private readonly cpuPollingInterval: number;
 	private readonly cpuPercentCascadingLimit: number;
-
-	private workerResourceCheckInterval: NodeJS.Timeout | undefined;
+	private workerResourceCheckInterval?: NodeJS.Timeout;
 
 	constructor({
 		ip,
