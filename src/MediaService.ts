@@ -254,7 +254,7 @@ export default class MediaService {
 					logger.error('startWorkers() error getting worker resource usage [error: %o]', result.reason);
 				}
 			});
-		}, 10_000);
+		}, this.cpuPollingInterval);
 	}
 
 	@skipIfClosed
