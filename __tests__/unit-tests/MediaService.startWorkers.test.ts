@@ -21,9 +21,11 @@ const optionsWithWorkers = {
 test('Factory method - should call startWorkers', async () => {
 	const spy = jest.spyOn(MediaService.prototype, 'startWorkers');
 
-	await MediaService.create(emptyMediaServiceOptions);
+	const ms = await MediaService.create(emptyMediaServiceOptions);
 
 	expect(spy).toHaveBeenCalled();
+
+	ms.close();
 });
 
 test('startWorkers() - should have one workers', async () => {
@@ -40,6 +42,8 @@ test('startWorkers() - should have one workers', async () => {
 
 	expect(spyCreateWorker).toHaveBeenCalled();
 	expect(sut.workers.length).toBe(1);
+
+	sut.close();
 });
 
 test('should restart worker if it dies', async () => {
@@ -58,10 +62,12 @@ test('should restart worker if it dies', async () => {
 	expect(spyRemoveWorker).toHaveBeenCalledTimes(0);
 	expect(spyAddWorker).toHaveBeenCalledTimes(1);
 
-	await mockWorker.emit('died', new Error);
+	mockWorker.emit('died', new Error);
 	
 	await TestUtils.sleep(10);
 	expect(spyRemoveWorker).toHaveBeenCalledTimes(1);
 	expect(spyAddWorker).toHaveBeenCalledTimes(2);
 	expect(sut.workers.length).toBe(1);
+
+	sut.close();
 });

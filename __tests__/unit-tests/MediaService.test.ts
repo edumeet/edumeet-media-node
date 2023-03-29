@@ -152,23 +152,6 @@ test('getRouter() - should not choose less load worker when router exists', asyn
 	expect(router2.appData.workerPid).toBe(1);
 });
 
-test('getRouter() - should choose other worker when load > 500', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
-	const sut = new MediaService(emptyMediaServiceOptions);
-	const mockWorker1 = new WorkerMock(spyObserver, 1, 500) as unknown as Worker;
-	const mockWorker2 = new WorkerMock(spyObserver, 2, 10) as unknown as Worker;
-
-	sut.workers.add(mockWorker1);
-	const router1 = await sut.getRouter('id');
-
-	sut.workers.add(mockWorker2);
-	const router2 = await sut.getRouter('id');
-
-	expect(router1.appData.workerPid).toBe(1);
-	expect(router2.appData.workerPid).toBe(2);
-
-});
-
 test('getRouter() - should use oversaturated worker if it is the least loaded in general', async () => {
 	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
 	const sut = new MediaService(emptyMediaServiceOptions);
@@ -225,9 +208,9 @@ test('getMetrics() - should give correct consumer count on add/remove consumer',
 	const fakeTransport = { observer: spyTransport } as unknown as Transport;
 	const fakeConsumer = { observer: spyConsumer, closed: false, id: 'id' } as unknown as Consumer;
 
-	await spyObserver.emit('newrouter', router1);
-	await spyObserver.emit('newtransport', fakeTransport);
-	await spyTransport.emit('newconsumer', fakeConsumer);
+	spyObserver.emit('newrouter', router1);
+	spyObserver.emit('newtransport', fakeTransport);
+	spyTransport.emit('newconsumer', fakeConsumer);
 
 	metrics = sut.getMetrics();
 	expect(metrics['1'].consumers).toBe(1);
@@ -236,4 +219,6 @@ test('getMetrics() - should give correct consumer count on add/remove consumer',
 	
 	metrics = sut.getMetrics();
 	expect(metrics['1'].consumers).toBe(0);
+
+	sut.close();
 });

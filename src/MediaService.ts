@@ -31,6 +31,8 @@ export interface WorkerData {
 	consumers: Map<string, Consumer>;
 	routersByRoomId: Map<string, Promise<Router>>;
 	webRtcServer: WebRtcServer;
+	resourceUsage: mediasoup.types.WorkerResourceUsage;
+	cpuUsage: number;
 }
 
 export interface RouterData {
@@ -66,6 +68,8 @@ export interface MediaServiceOptions {
 	numberOfWorkers: number;
 	useObserveRTC: boolean;
 	pollStatsProbability: number;
+	cpuPollingInterval: number;
+	cpuPercentCascadingLimit: number;
 }
 
 export default class MediaService {
@@ -87,6 +91,9 @@ export default class MediaService {
 	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
 	public readonly monitor?: MediasoupMonitor;
+	private readonly cpuPollingInterval: number;
+	private readonly cpuPercentCascadingLimit: number;
+	private workerResourceCheckInterval?: NodeJS.Timeout;
 
 	constructor({
 		ip,
@@ -96,6 +103,8 @@ export default class MediaService {
 		maxOutgoingBitrate,
 		useObserveRTC,
 		pollStatsProbability,
+		cpuPollingInterval,
+		cpuPercentCascadingLimit,
 	}: MediaServiceOptions) {
 		logger.debug('constructor()');
 
@@ -105,6 +114,8 @@ export default class MediaService {
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
 		this.monitor = useObserveRTC ? this.createMonitor(pollStatsProbability) : undefined;
+		this.cpuPollingInterval = cpuPollingInterval;
+		this.cpuPercentCascadingLimit = cpuPercentCascadingLimit;
 	}
 
 	@skipIfClosed
@@ -112,6 +123,8 @@ export default class MediaService {
 		logger.debug('close()');
 
 		this.closed = true;
+
+		clearInterval(this.workerResourceCheckInterval);
 
 		this.workers.items.forEach((w) => w.close());
 		this.workers.clear();
@@ -200,6 +213,7 @@ export default class MediaService {
 					appData: {
 						consumers: new Map<string, Consumer>(),
 						routersByRoomId: new Map<string, Promise<Router>>(),
+						cpuUsage: 0,
 					}
 				} as WorkerSettings;
 			} else {
@@ -209,12 +223,38 @@ export default class MediaService {
 					appData: {
 						consumers: new Map<string, Consumer>(),
 						routersByRoomId: new Map<string, Promise<Router>>(),
+						cpuUsage: 0,
 					}
 				} as WorkerSettings;
 			}
 
 			await this.startWorker(settings);
 		}
+
+		this.workerResourceCheckInterval = setInterval(async () => {
+			const resourses = await Promise.allSettled(
+				this.workers.items.map((w) => w.getResourceUsage())
+			);
+
+			resourses.forEach((result, index) => {
+				if (result.status === 'fulfilled') {
+					const worker = this.workers.items[index];
+					const workerData = worker.appData as unknown as WorkerData;
+
+					// eslint-disable-next-line camelcase
+					const { ru_utime: oldRuUtime, ru_stime: oldRuStime } = workerData.resourceUsage ?? { ru_utime: 0, ru_stime: 0 };
+					// eslint-disable-next-line camelcase
+					const { ru_utime: newRuUtime, ru_stime: newRuStime } = result.value;
+
+					workerData.cpuUsage = ((newRuUtime + newRuStime - oldRuUtime - oldRuStime) / this.cpuPollingInterval) * 100;
+					workerData.resourceUsage = result.value;
+
+					logger.debug('startWorkers() worker resource usage [workerPid: %s, cpuUsage: %s]', worker.pid, workerData.cpuUsage);
+				} else {
+					logger.error('startWorkers() error getting worker resource usage [error: %o]', result.reason);
+				}
+			});
+		}, this.cpuPollingInterval);
 	}
 
 	@skipIfClosed
@@ -313,8 +353,8 @@ export default class MediaService {
 
 		// Create a new array, we don't want to mutate the original one
 		const leastLoadedWorkers = [ ...this.workers.items ].sort((a, b) =>
-			(a.appData as unknown as WorkerData).consumers.size -
-			(b.appData as unknown as WorkerData).consumers.size);
+			(a.appData as unknown as WorkerData).cpuUsage -
+			(b.appData as unknown as WorkerData).cpuUsage);
 
 		if (roomRouters.length === 0) {
 			logger.debug('getRouter() first client [roomId: %s]', roomId);
@@ -330,13 +370,12 @@ export default class MediaService {
 		const leastLoadedRoomWorkerData =
 			leastLoadedRoomWorkers[0].appData as unknown as WorkerData;
 
-		// Consumer count is the best measurement available for load
-		// 500 has proven to be a good break point.
-		if (leastLoadedRoomWorkerData.consumers.size < 500) {
+		// CPU usage is below the cascading limit, use the least loaded room worker
+		if (leastLoadedRoomWorkerData.cpuUsage < this.cpuPercentCascadingLimit) {
 			logger.debug(
-				'getRouter() worker has capacity [roomId: %s, load: %s]',
+				'getRouter() worker has capacity [roomId: %s, cpuUsage: %s]',
 				roomId,
-				leastLoadedRoomWorkerData.consumers.size
+				leastLoadedRoomWorkerData.cpuUsage
 			);
 
 			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
@@ -347,31 +386,31 @@ export default class MediaService {
 
 		if (leastLoadedRoomWorkers[0].pid === leastLoadedWorkers[0].pid) {
 			logger.debug(
-				'getRouter() room worker least loaded [roomId: %s, load: %s]',
+				'getRouter() room worker least loaded [roomId: %s, cpuUsage: %s]',
 				roomId,
-				leastLoadedRoomWorkerData.consumers.size
+				leastLoadedRoomWorkerData.cpuUsage
 			);
 
 			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		if (
-			leastLoadedRoomWorkerData.consumers.size -
-			leastLoadedWorkerData.consumers.size < 100
+			leastLoadedRoomWorkerData.cpuUsage -
+			leastLoadedWorkerData.cpuUsage < 10
 		) {
 			logger.debug(
-				'getRouter() low delta [roomId: %s, load: %s]',
+				'getRouter() low delta [roomId: %s, cpuUsage: %s]',
 				roomId,
-				leastLoadedRoomWorkerData.consumers.size
+				leastLoadedRoomWorkerData.cpuUsage
 			);
 
 			return this.getOrCreateRouterPromise(roomId, leastLoadedRoomWorkers[0]);
 		}
 
 		logger.debug(
-			'getRouter() last resort [roomId: %s, load: %s]',
+			'getRouter() last resort [roomId: %s, cpuUsage: %s]',
 			roomId,
-			leastLoadedWorkerData.consumers.size
+			leastLoadedWorkerData.cpuUsage
 		);
 
 		return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
