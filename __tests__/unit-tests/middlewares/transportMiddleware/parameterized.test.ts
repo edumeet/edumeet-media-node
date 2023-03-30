@@ -1,15 +1,15 @@
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Router } from 'mediasoup/node/lib/Router';
 import { Transport } from 'mediasoup/node/lib/Transport';
-import { MiddlewareOptions } from '../../../src/common/types';
-import { createTransportMiddleware } from '../../../src/middlewares/transportMiddleware';
-import RoomServer from '../../../src/RoomServer';
-import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/RoomServerConnection';
-import ProducerMock from '../../../__mocks__/ProducerMock';
-import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
-import RoomServerMock from '../../../__mocks__/RoomServerMock';
-import RouterMock from '../../../__mocks__/RouterMock';
-import TransportMock from '../../../__mocks__/TransportMock';
+import { MiddlewareOptions } from '../../../../src/common/types';
+import { createTransportMiddleware } from '../../../../src/middlewares/transportMiddleware';
+import RoomServer from '../../../../src/RoomServer';
+import { RoomServerConnection, RoomServerConnectionContext } from '../../../../src/RoomServerConnection';
+import ProducerMock from '../../../../__mocks__/ProducerMock';
+import RoomServerConnectionMock from '../../../../__mocks__/RoomServerConnectionMock';
+import RoomServerMock from '../../../../__mocks__/RoomServerMock';
+import RouterMock from '../../../../__mocks__/RouterMock';
+import TransportMock from '../../../../__mocks__/TransportMock';
 
 const next = jest.fn();
 

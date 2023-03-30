@@ -1,19 +1,19 @@
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Router } from 'mediasoup/node/lib/Router';
 import { Transport } from 'mediasoup/node/lib/Transport';
-import { MiddlewareOptions } from '../../../src/common/types';
-import { createConsumerMiddleware } from '../../../src/middlewares/consumerMiddleware';
-import RoomServer from '../../../src/RoomServer';
-import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/RoomServerConnection';
-import RoomServerMock from '../../../__mocks__/RoomServerMock';
-import RouterMock from '../../../__mocks__/RouterMock';
-import TransportMock from '../../../__mocks__/TransportMock';
-import ProducerMock from '../../../__mocks__/ProducerMock';
-import ConsumerMock from '../../../__mocks__/ConsumerMock';
+import { MiddlewareOptions } from '../../../../src/common/types';
+import { createConsumerMiddleware } from '../../../../src/middlewares/consumerMiddleware';
+import RoomServer from '../../../../src/RoomServer';
+import { RoomServerConnection, RoomServerConnectionContext } from '../../../../src/RoomServerConnection';
+import RoomServerMock from '../../../../__mocks__/RoomServerMock';
+import RouterMock from '../../../../__mocks__/RouterMock';
+import TransportMock from '../../../../__mocks__/TransportMock';
+import ProducerMock from '../../../../__mocks__/ProducerMock';
+import ConsumerMock from '../../../../__mocks__/ConsumerMock';
 import { Consumer } from 'mediasoup/node/lib/Consumer';
 import EventEmitter from 'events';
 import { Next } from 'edumeet-common';
-import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
+import RoomServerConnectionMock from '../../../../__mocks__/RoomServerConnectionMock';
 
 describe('consumeData', () => {
 	let context: RoomServerConnectionContext;

@@ -241,12 +241,16 @@ export default class MediaService {
 					const worker = this.workers.items[index];
 					const workerData = worker.appData as unknown as WorkerData;
 
-					// eslint-disable-next-line camelcase
-					const { ru_utime: oldRuUtime, ru_stime: oldRuStime } = workerData.resourceUsage ?? { ru_utime: 0, ru_stime: 0 };
-					// eslint-disable-next-line camelcase
+					/* eslint-disable camelcase */
+					const {	ru_utime: oldRuUtime, ru_stime: oldRuStime } = 
+						workerData.resourceUsage ?? { ru_utime: 0, ru_stime: 0 };
 					const { ru_utime: newRuUtime, ru_stime: newRuStime } = result.value;
 
-					workerData.cpuUsage = ((newRuUtime + newRuStime - oldRuUtime - oldRuStime) / this.cpuPollingInterval) * 100;
+					workerData.cpuUsage = (
+						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) / 
+						this.cpuPollingInterval
+					) * 100;
+					/* eslint-enable camelcase */
 					workerData.resourceUsage = result.value;
 
 					logger.debug('startWorkers() worker resource usage [workerPid: %s, cpuUsage: %s]', worker.pid, workerData.cpuUsage);

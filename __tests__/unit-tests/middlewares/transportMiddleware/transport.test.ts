@@ -2,16 +2,16 @@ import EventEmitter from 'events';
 import { PipeTransport } from 'mediasoup/node/lib/PipeTransport';
 import { Router } from 'mediasoup/node/lib/Router';
 import { WebRtcTransport } from 'mediasoup/node/lib/WebRtcTransport';
-import { MiddlewareOptions } from '../../../src/common/types';
-import MediaService from '../../../src/MediaService';
-import { createTransportMiddleware } from '../../../src/middlewares/transportMiddleware';
-import RoomServer from '../../../src/RoomServer';
-import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/RoomServerConnection';
-import MediaServiceMock from '../../../__mocks__/MediaServiceMock';
-import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
-import RoomServerMock from '../../../__mocks__/RoomServerMock';
-import RouterMock from '../../../__mocks__/RouterMock';
-import TransportMock from '../../../__mocks__/TransportMock';
+import { MiddlewareOptions } from '../../../../src/common/types';
+import MediaService from '../../../../src/MediaService';
+import { createTransportMiddleware } from '../../../../src/middlewares/transportMiddleware';
+import RoomServer from '../../../../src/RoomServer';
+import { RoomServerConnection, RoomServerConnectionContext } from '../../../../src/RoomServerConnection';
+import MediaServiceMock from '../../../../__mocks__/MediaServiceMock';
+import RoomServerConnectionMock from '../../../../__mocks__/RoomServerConnectionMock';
+import RoomServerMock from '../../../../__mocks__/RoomServerMock';
+import RouterMock from '../../../../__mocks__/RouterMock';
+import TransportMock from '../../../../__mocks__/TransportMock';
 
 const next = jest.fn();
 

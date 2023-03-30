@@ -1,14 +1,14 @@
 import { Router } from 'mediasoup/node/lib/Router';
-import { MiddlewareOptions } from '../../../src/common/types';
-import { createConsumerMiddleware } from '../../../src/middlewares/consumerMiddleware';
-import RoomServer from '../../../src/RoomServer';
-import { RoomServerConnection, RoomServerConnectionContext } from '../../../src/RoomServerConnection';
-import RoomServerMock from '../../../__mocks__/RoomServerMock';
-import RouterMock from '../../../__mocks__/RouterMock';
-import ConsumerMock from '../../../__mocks__/ConsumerMock';
+import { MiddlewareOptions } from '../../../../src/common/types';
+import { createConsumerMiddleware } from '../../../../src/middlewares/consumerMiddleware';
+import RoomServer from '../../../../src/RoomServer';
+import { RoomServerConnection, RoomServerConnectionContext } from '../../../../src/RoomServerConnection';
+import RoomServerMock from '../../../../__mocks__/RoomServerMock';
+import RouterMock from '../../../../__mocks__/RouterMock';
+import ConsumerMock from '../../../../__mocks__/ConsumerMock';
 import { Consumer } from 'mediasoup/node/lib/Consumer';
 import EventEmitter from 'events';
-import RoomServerConnectionMock from '../../../__mocks__/RoomServerConnectionMock';
+import RoomServerConnectionMock from '../../../../__mocks__/RoomServerConnectionMock';
 
 test.each([
 	[ 'closeConsumer', 'close' ],

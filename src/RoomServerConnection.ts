@@ -1,3 +1,4 @@
+import os from 'os';
 import EventEmitter from 'events';
 import {
 	BaseConnection,
@@ -90,9 +91,10 @@ export class RoomServerConnection extends EventEmitter {
 
 				await this.pipeline.execute(context);
 
-				if (context.handled)
+				if (context.handled) {
+					context.response.load = os.loadavg()[0] / os.cpus().length;
 					respond(context.response);
-				else {
+				} else {
 					logger.debug('request() unhandled request [method: %s]', request.method);
 
 					reject('Server error');
@@ -110,6 +112,7 @@ export class RoomServerConnection extends EventEmitter {
 	@skipIfClosed
 	public notify(notification: SocketMessage): void {
 		logger.debug('notify() [method: %s]', notification.method);
+		notification.data.load = os.loadavg()[0] / os.cpus().length;
 
 		try {
 			this.connection.notify(notification);

@@ -1,6 +1,7 @@
 {
 	"extends": "@tsconfig/node18/tsconfig.json",
 	"compilerOptions": {
+		"esModuleInterop": true,
 		"experimentalDecorators": true,
 		"resolveJsonModule": true,
 	},
