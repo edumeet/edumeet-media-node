@@ -30,7 +30,14 @@ export default class WorkerMock extends EnhancedEventEmitter {
 
 	close = jest.fn();
 
-	getResourceUsage = jest.fn();
+	getResourceUsage = jest.fn().mockReturnValue({
+		value: {
+			/* eslint-disable camelcase */
+			ru_utime: 0.2,
+			ru_stime: 0.2
+			/* eslint-enable camelcase */
+		}
+	});
 
 	createWebRtcServer = jest.fn();
 	
