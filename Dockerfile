@@ -22,4 +22,4 @@ EXPOSE ${LISTEN_PORT}
 EXPOSE ${RTC_MIN_PORT}-${RTC_MAX_PORT}/udp
 EXPOSE ${RTC_MIN_PORT}-${RTC_MAX_PORT}/tcp
 
-ENTRYPOINT DEBUG=edumeet-media-node:* yarn run prodstart --listenPort ${LISTEN_PORT} --rtcMinPort ${RTC_MIN_PORT} --rtcMaxPort ${RTC_MAX_PORT} $0 $@
+ENTRYPOINT DEBUG=edumeet:* yarn run prodstart --listenPort ${LISTEN_PORT} --rtcMinPort ${RTC_MIN_PORT} --rtcMaxPort ${RTC_MAX_PORT} $0 $@

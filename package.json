@@ -1,6 +1,6 @@
 {
 	"name": "edumeet-media-node",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Edumeet media node",
 	"main": "dist/server.js",
 	"author": "Håvar Aambø Fosstveit <havar@fosstveit.net>",
