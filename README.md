@@ -15,11 +15,12 @@ Add up the number of cores, and the number of pipes between routers and you have
 ## Usage
 
 ### Docker
-Running the service as a docker container.
+Running the service as a docker container.  
+It's easiest to let the container use the networking stack of the host.
 
 ```bash
 $ docker build . -t user/edumeet-media-node
-$ docker run -p 3000:3000 -p 40000-40249:40000-40249/udp -p 40000-40249:40000-40249/tcp user/edumeet-media-node --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
+$ docker run -d --network=host user/edumeet-media-node -- --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
 ```
 
 ### Running the service manually
@@ -32,5 +33,5 @@ $ yarn start --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
 To run the service you need to have Node.js version 18 or higher installed. Alternatively you can get some debug output by running it like this:
 
 ```bash
-$ DEBUG=edumeet-media-node:* yarn start --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
+$ DEBUG=edumeet:* yarn start --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
 ```
