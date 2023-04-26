@@ -160,42 +160,38 @@ export const createProducerMiddleware = ({
 				if (!transport)
 					throw new Error(`transport with id "${transportId}" not found`);
 
-				try {
-					const producer = await transport.produce({
-						kind,
-						rtpParameters,
-						paused,
-					});
+				const producer = await transport.produce({
+					kind,
+					rtpParameters,
+					paused,
+				});
 
-					routerData.producers.set(producer.id, producer);
-					producer.observer.once('close', () => {
-						routerData.producers.delete(producer.id);
+				routerData.producers.set(producer.id, producer);
+				producer.observer.once('close', () => {
+					routerData.producers.delete(producer.id);
 
-						if (!producer.appData.remoteClosed) {
-							roomServerConnection.notify({
-								method: 'producerClosed',
-								data: {
-									routerId,
-									producerId: producer.id
-								}
-							});
-						}
-					});
+					if (!producer.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'producerClosed',
+							data: {
+								routerId,
+								producerId: producer.id
+							}
+						});
+					}
+				});
 
-					producer.on('score', (score) => roomServerConnection.notify({
-						method: 'producerScore',
-						data: {
-							routerId,
-							producerId: producer.id,
-							score
-						}
-					}));
+				producer.on('score', (score) => roomServerConnection.notify({
+					method: 'producerScore',
+					data: {
+						routerId,
+						producerId: producer.id,
+						score
+					}
+				}));
 
-					response.id = producer.id;
-					context.handled = true;
-				} catch (error) {
-					throw new Error('produce failed');
-				}
+				response.id = producer.id;
+				context.handled = true;
 
 				break;
 			}
