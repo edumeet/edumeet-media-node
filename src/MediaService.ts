@@ -16,6 +16,8 @@ import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
 import { WebRtcServer } from 'mediasoup/node/lib/WebRtcServer';
 import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
+import { ActiveSpeakerObserver } from 'mediasoup/node/lib/ActiveSpeakerObserver';
+import { AudioLevelObserver } from 'mediasoup/node/lib/AudioLevelObserver';
 
 const logger = new Logger('MediaService');
 
@@ -49,6 +51,8 @@ export interface RouterData {
 	pipeDataProducers: Map<string, DataProducer>;
 	dataConsumers: Map<string, DataConsumer>;
 	pipeDataConsumers: Map<string, DataConsumer>;
+	activeSpeakerObservers: Map<string, ActiveSpeakerObserver>;
+	audioLevelObservers: Map<string, AudioLevelObserver>;
 	remoteClose?: boolean;
 }
 
@@ -273,7 +277,7 @@ export default class MediaService {
 		let routerPromise = workerData.routersByRoomId.get(roomId);
 
 		if (!routerPromise) {
-			routerPromise = new Promise<Router>(async (resolve, reject) => {
+			routerPromise = (async () => {
 				let router: Router | undefined;
 
 				try {
@@ -303,6 +307,8 @@ export default class MediaService {
 							pipeDataProducers: new Map<string, DataProducer>(),
 							dataConsumers: new Map<string, DataConsumer>(),
 							pipeDataConsumers: new Map<string, DataConsumer>(),
+							activeSpeakerObservers: new Map<string, ActiveSpeakerObserver>(),
+							audioLevelObservers: new Map<string, AudioLevelObserver>(),
 						}
 					});
 
@@ -329,13 +335,13 @@ export default class MediaService {
 					rtpCapabilities.headerExtensions = rtpCapabilities.headerExtensions?.filter(
 						(ext: RtpHeaderExtension) => ext.uri !== 'urn:3gpp:video-orientation');
 
-					resolve(router);
+					return router;
 				} catch (error) {
 					router?.close();
 
-					reject(error);
+					throw error;
 				}
-			});
+			})();
 
 			workerData.routersByRoomId.set(roomId, routerPromise);
 		}

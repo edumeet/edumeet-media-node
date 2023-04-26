@@ -11,6 +11,7 @@ import { createTransportMiddleware } from './middlewares/transportMiddleware';
 import { createProducerMiddleware } from './middlewares/producerMiddleware';
 import { createConsumerMiddleware } from './middlewares/consumerMiddleware';
 import { Logger, Middleware, skipIfClosed } from 'edumeet-common';
+import { createAudioObserverMiddleware } from './middlewares/audioObserverMiddleware';
 
 const logger = new Logger('RoomServer');
 
@@ -26,6 +27,7 @@ export default class RoomServer extends EventEmitter {
 	public roomServerConnection: RoomServerConnection;
 
 	private routerMiddleware: Middleware<RoomServerConnectionContext>;
+	private audioObserverMiddleware: Middleware<RoomServerConnectionContext>;
 	private transportMiddleware: Middleware<RoomServerConnectionContext>;
 	private producerMiddleware: Middleware<RoomServerConnectionContext>;
 	private consumerMiddleware: Middleware<RoomServerConnectionContext>;
@@ -47,6 +49,7 @@ export default class RoomServer extends EventEmitter {
 		} as MiddlewareOptions;
 
 		this.routerMiddleware = createRouterMiddleware(middlewareOptions);
+		this.audioObserverMiddleware = createAudioObserverMiddleware(middlewareOptions);
 		this.transportMiddleware = createTransportMiddleware(middlewareOptions);
 		this.producerMiddleware = createProducerMiddleware(middlewareOptions);
 		this.consumerMiddleware = createConsumerMiddleware(middlewareOptions);
@@ -59,6 +62,12 @@ export default class RoomServer extends EventEmitter {
 		logger.debug('close()');
 
 		this.closed = true;
+
+		this.roomServerConnection.pipeline.remove(this.routerMiddleware);
+		this.roomServerConnection.pipeline.remove(this.audioObserverMiddleware);
+		this.roomServerConnection.pipeline.remove(this.transportMiddleware);
+		this.roomServerConnection.pipeline.remove(this.producerMiddleware);
+		this.roomServerConnection.pipeline.remove(this.consumerMiddleware);
 
 		this.roomServerConnection.close();
 		this.routers.forEach((router) => router.close());
@@ -75,6 +84,7 @@ export default class RoomServer extends EventEmitter {
 
 		this.roomServerConnection.pipeline.use(
 			this.routerMiddleware,
+			this.audioObserverMiddleware,
 			this.transportMiddleware,
 			this.producerMiddleware,
 			this.consumerMiddleware

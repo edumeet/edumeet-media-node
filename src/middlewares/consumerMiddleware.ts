@@ -144,71 +144,67 @@ export const createConsumerMiddleware = ({
 				if (!producer)
 					throw new Error(`producer with id "${producerId}" not found`);
 
-				try {
-					const consumer = await transport.consume({
-						producerId: producer.id,
-						rtpCapabilities,
-						paused: producer.kind === 'video',
-					});
+				const consumer = await transport.consume({
+					producerId: producer.id,
+					rtpCapabilities,
+					paused: producer.kind === 'video',
+				});
 
-					routerData.consumers.set(consumer.id, consumer);
-					consumer.observer.once('close', () => {
-						routerData.consumers.delete(consumer.id);
+				routerData.consumers.set(consumer.id, consumer);
+				consumer.observer.once('close', () => {
+					routerData.consumers.delete(consumer.id);
 
-						if (!consumer.appData.remoteClosed) {
-							roomServerConnection.notify({
-								method: 'consumerClosed',
-								data: {
-									routerId,
-									consumerId: consumer.id
-								}
-							});
-						}
-					});
-			
-					consumer.on('producerpause', () => roomServerConnection.notify({
-						method: 'consumerProducerPaused',
-						data: {
-							routerId,
-							consumerId: consumer.id
-						}
-					}));
-			
-					consumer.on('producerresume', () => roomServerConnection.notify({
-						method: 'consumerProducerResumed',
-						data: {
-							routerId,
-							consumerId: consumer.id
-						}
-					}));
-			
-					consumer.on('score', (score) => roomServerConnection.notify({
-						method: 'consumerScore',
-						data: {
-							routerId,
-							consumerId: consumer.id,
-							score
-						}
-					}));
-			
-					consumer.on('layerschange', (layers) => roomServerConnection.notify({
-						method: 'consumerLayersChanged',
-						data: {
-							routerId,
-							consumerId: consumer.id,
-							layers
-						}
-					}));
+					if (!consumer.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'consumerClosed',
+							data: {
+								routerId,
+								consumerId: consumer.id
+							}
+						});
+					}
+				});
+		
+				consumer.on('producerpause', () => roomServerConnection.notify({
+					method: 'consumerProducerPaused',
+					data: {
+						routerId,
+						consumerId: consumer.id
+					}
+				}));
+		
+				consumer.on('producerresume', () => roomServerConnection.notify({
+					method: 'consumerProducerResumed',
+					data: {
+						routerId,
+						consumerId: consumer.id
+					}
+				}));
+		
+				consumer.on('score', (score) => roomServerConnection.notify({
+					method: 'consumerScore',
+					data: {
+						routerId,
+						consumerId: consumer.id,
+						score
+					}
+				}));
+		
+				consumer.on('layerschange', (layers) => roomServerConnection.notify({
+					method: 'consumerLayersChanged',
+					data: {
+						routerId,
+						consumerId: consumer.id,
+						layers
+					}
+				}));
 
-					response.id = consumer.id;
-					response.kind = consumer.kind;
-					response.paused = consumer.paused;
-					response.producerPaused = consumer.producerPaused;
-					response.rtpParameters = consumer.rtpParameters;
-					context.handled = true;
-				} catch (error) {
-					throw new Error('consume failed');
-				}
+				response.id = consumer.id;
+				response.kind = consumer.kind;
+				response.paused = consumer.paused;
+				response.producerPaused = consumer.producerPaused;
+				response.rtpParameters = consumer.rtpParameters;
+				context.handled = true;
 
 				break;
 			}
