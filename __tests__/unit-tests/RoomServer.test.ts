@@ -1,4 +1,3 @@
-import { Router } from 'mediasoup/node/lib/Router';
 import MediaService from '../../src/MediaService';
 import RoomServer, { RoomServerOptions } from '../../src/RoomServer';
 import { RoomServerConnection } from '../../src/RoomServerConnection';
