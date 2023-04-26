@@ -307,7 +307,7 @@ export default class MediaService {
 							pipeDataProducers: new Map<string, DataProducer>(),
 							dataConsumers: new Map<string, DataConsumer>(),
 							pipeDataConsumers: new Map<string, DataConsumer>(),
-							activeSpeakerObversers: new Map<string, ActiveSpeakerObserver>(),
+							activeSpeakerObservers: new Map<string, ActiveSpeakerObserver>(),
 							audioLevelObservers: new Map<string, AudioLevelObserver>(),
 						}
 					});
