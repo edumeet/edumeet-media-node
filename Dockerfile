@@ -9,6 +9,9 @@ ENV RTC_MIN_PORT=$rtcMinPort
 ARG rtcMaxPort=40249
 ENV RTC_MAX_PORT=$rtcMaxPort
 
+ARG mediaNodeDebug="edumeet:*"
+ENV MN_DEBUG=$mediaNodeDebug
+
 WORKDIR /usr/src/app
 
 RUN apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -yq build-essential python3-pip; apt-get clean
@@ -22,4 +25,4 @@ EXPOSE ${LISTEN_PORT}
 EXPOSE ${RTC_MIN_PORT}-${RTC_MAX_PORT}/udp
 EXPOSE ${RTC_MIN_PORT}-${RTC_MAX_PORT}/tcp
 
-ENTRYPOINT DEBUG=edumeet:* yarn run prodstart --listenPort ${LISTEN_PORT} --rtcMinPort ${RTC_MIN_PORT} --rtcMaxPort ${RTC_MAX_PORT} $0 $@
+ENTRYPOINT DEBUG=${MN_DEBUG} yarn run prodstart --listenPort ${LISTEN_PORT} --rtcMinPort ${RTC_MIN_PORT} --rtcMaxPort ${RTC_MAX_PORT} $0 $@
