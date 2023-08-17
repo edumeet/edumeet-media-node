@@ -136,7 +136,7 @@ test('request() - should ', async () => {
 		connection: mockConn
 	};
 	const requestSpy = jest.spyOn(mockConn, 'request');
-	const fakeMessage = 'msg' as unknown as SocketMessage; 
+	const fakeMessage = { data: {} } as unknown as SocketMessage; 
 
 	const sut = new RoomServerConnection(options);
 
