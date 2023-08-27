@@ -74,7 +74,7 @@ export class RoomServerConnection extends EventEmitter {
 				await this.pipeline.execute(context);
 
 				if (!context.handled)
-					throw new Error('no middleware handled the notification');
+					throw new Error(`no middleware handled the notification [method: ${notification.method}]`);
 			} catch (error) {
 				logger.error('notification() [error: %o]', error);
 			}
