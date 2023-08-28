@@ -2649,15 +2649,15 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mediasoup@3.12.3:
-  version "3.12.3"
-  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.12.3.tgz#3c82ab6cf6e100409c65cd58175707f3e7715494"
-  integrity sha512-73+YLmbBQ1oyU2AiA4CgCWVWs/rRzYnmHMWMpt7yvrOqogcuYal6bqRQN4Lb00zYRFpdYf6MHxWWbc/XlOspTA==
+mediasoup@3.12.10:
+  version "3.12.10"
+  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.12.10.tgz#aa07d1e9ea5e8f2a90ebce26b99ecae60ec1f4de"
+  integrity sha512-xOL/CSN4Cv0WwB9kGnf1ct2RvjOvVpy0VRIg5MshqFQr03FfwdGkejWbJfDeP5yPDIR9uWbvlPmv6HKJ+tRKTQ==
   dependencies:
     debug "^4.3.4"
     h264-profile-level-id "^1.0.1"
-    node-fetch "^3.3.1"
-    supports-color "^9.3.1"
+    node-fetch "^3.3.2"
+    supports-color "^9.4.0"
     tar "^6.1.15"
     uuid "^9.0.0"
 
@@ -2768,10 +2768,10 @@ node-domexception@^1.0.0:
   resolved "https://registry.yarnpkg.com/node-domexception/-/node-domexception-1.0.0.tgz#6888db46a1f71c0b76b3f7555016b63fe64766e5"
   integrity sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==
 
-node-fetch@^3.3.1:
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-3.3.1.tgz#b3eea7b54b3a48020e46f4f88b9c5a7430d20b2e"
-  integrity sha512-cRVc/kyto/7E5shrWca1Wsea4y6tL9iYJE5FBCius3JQfb/4P4I295PfhgbJQBLTx6lATE4z+wK0rPM4VS2uow==
+node-fetch@^3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-3.3.2.tgz#d1e889bacdf733b4ff3b2b243eb7a12866a0b78b"
+  integrity sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==
   dependencies:
     data-uri-to-buffer "^4.0.0"
     fetch-blob "^3.1.4"
@@ -3280,10 +3280,10 @@ supports-color@^8.0.0:
   dependencies:
     has-flag "^4.0.0"
 
-supports-color@^9.3.1:
-  version "9.3.1"
-  resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-9.3.1.tgz#34e4ad3c71c9a39dae3254ecc46c9b74e89e15a6"
-  integrity sha512-knBY82pjmnIzK3NifMo3RxEIRD9E0kIzV4BKcyTZ9+9kWgLMxd4PrsTSMoFQUabgRBbF8KOLRDCyKgNV+iK44Q==
+supports-color@^9.4.0:
+  version "9.4.0"
+  resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-9.4.0.tgz#17bfcf686288f531db3dea3215510621ccb55954"
+  integrity sha512-VL+lNrEoIXww1coLPOmiEmK/0sGigko5COxI09KzHc2VJXJsQ37UaQ+8quuxjDeA7+KnLGTWRyOXSLLR2Wb4jw==
 
 supports-preserve-symlinks-flag@^1.0.0:
   version "1.0.0"
