@@ -1,4 +1,3 @@
-import os from 'os';
 import EventEmitter from 'events';
 import {
 	BaseConnection,
@@ -9,6 +8,7 @@ import {
 	skipIfClosed,
 	SocketMessage
 } from 'edumeet-common';
+import { getCpuLoad } from './common/utils';
 
 const logger = new Logger('RoomServerConnection');
 
@@ -74,7 +74,7 @@ export class RoomServerConnection extends EventEmitter {
 				await this.pipeline.execute(context);
 
 				if (!context.handled)
-					throw new Error('no middleware handled the notification');
+					throw new Error(`no middleware handled the notification [method: ${notification.method}]`);
 			} catch (error) {
 				logger.error('notification() [error: %o]', error);
 			}
@@ -92,7 +92,7 @@ export class RoomServerConnection extends EventEmitter {
 				await this.pipeline.execute(context);
 
 				if (context.handled) {
-					context.response.load = os.loadavg()[0] / os.cpus().length;
+					context.response.load = getCpuLoad();
 					respond(context.response);
 				} else {
 					logger.debug('request() unhandled request [method: %s]', request.method);
@@ -112,7 +112,7 @@ export class RoomServerConnection extends EventEmitter {
 	@skipIfClosed
 	public notify(notification: SocketMessage): void {
 		logger.debug('notify() [method: %s]', notification.method);
-		notification.data.load = os.loadavg()[0] / os.cpus().length;
+		notification.data.load = getCpuLoad(); 
 
 		try {
 			this.connection.notify(notification);
@@ -125,6 +125,7 @@ export class RoomServerConnection extends EventEmitter {
 	public async request(request: SocketMessage): Promise<unknown> {
 		logger.debug('request() [method: %s]', request.method);
 
+		request.data.load = getCpuLoad();
 		try {
 			return await this.connection.request(request);
 		} catch (error) {
