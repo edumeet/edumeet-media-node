@@ -59,6 +59,13 @@ export class RoomServerConnection extends EventEmitter {
 	}
 
 	@skipIfClosed
+	public drain(timeout: number): void {
+		logger.debug('drain()');
+
+		this.notify({ method: 'mediaNodeDrain', data: { timeout } });
+	}
+
+	@skipIfClosed
 	public handleConnection(): void {
 		logger.debug('addConnection()');
 
@@ -112,7 +119,10 @@ export class RoomServerConnection extends EventEmitter {
 	@skipIfClosed
 	public notify(notification: SocketMessage): void {
 		logger.debug('notify() [method: %s]', notification.method);
-		notification.data.load = getCpuLoad(); 
+
+		if (!notification.data) notification.data = {};
+
+		notification.data.load = getCpuLoad();
 
 		try {
 			this.connection.notify(notification);
@@ -125,7 +135,10 @@ export class RoomServerConnection extends EventEmitter {
 	public async request(request: SocketMessage): Promise<unknown> {
 		logger.debug('request() [method: %s]', request.method);
 
+		if (!request.data) request.data = {};
+
 		request.data.load = getCpuLoad();
+	
 		try {
 			return await this.connection.request(request);
 		} catch (error) {

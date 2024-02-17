@@ -16,6 +16,7 @@ import MediaService from './MediaService';
 import { RoomServerConnection } from './RoomServerConnection';
 import RoomServer from './RoomServer';
 import { Logger } from 'edumeet-common';
+import { cancelDrain, drain } from './server';
 
 const SOCKET_PATH_UNIX = '/tmp/edumeet-media-node.sock';
 const SOCKET_PATH_WIN = path.join('\\\\?\\pipe', process.cwd(), 'edumeet-media-node');
@@ -75,8 +76,9 @@ class InteractiveServer {
 						this.log('- h,  help                    : show this message');
 						this.log('- logLevel level              : changes logLevel in all mediasoup Workers');
 						this.log('- logTags [tag] [tag]         : changes logTags in all mediasoup Workers (values separated by space)');
+						this.log('- drain [timeout]             : drain server with a timeout in seconds (default 3600)');
+						this.log('- cancelDrain                 : cancel server drain');
 						this.log('- dw, dumpWorkers             : dump mediasoup Workers');
-						this.log('- dwrs, dumpWebRtcServer [id] : dump mediasoup WebRtcServer with given id (or the latest created one)');
 						this.log('- dr, dumpRouter [id]         : dump mediasoup Router with given id (or the latest created one)');
 						this.log('- dt, dumpTransport [id]      : dump mediasoup Transport with given id (or the latest created one)');
 						this.log('- dp, dumpProducer [id]       : dump mediasoup Producer with given id (or the latest created one)');
@@ -129,6 +131,36 @@ class InteractiveServer {
 						} catch (error) {
 							this.error(String(error));
 						}
+
+						break;
+					}
+
+					case 'drain': {
+						const timeout = params[0] ? parseInt(params[0], 10) : 3600;
+
+						if (typeof timeout !== 'number' || timeout < 0) {
+							this.error('invalid timeout, draining aborted');
+
+							break;
+						}
+
+						const draining = drain(timeout);
+
+						if (!draining) {
+							this.error('server is already draining, please wait until it exits or cancel the drain first');
+
+							break;
+						}
+
+						this.log(`draining server with timeout ${timeout} seconds...`);
+
+						break;
+					}
+
+					case 'cancelDrain': {
+						cancelDrain();
+
+						this.log('drain cancelled');
 
 						break;
 					}

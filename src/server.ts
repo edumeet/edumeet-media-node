@@ -52,6 +52,44 @@ const showUsage = () => {
 	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
 };
 
+const roomServerConnections = new Map<string, RoomServerConnection>();
+const roomServers = new Map<string, RoomServer>();
+
+let draining = false;
+let drainingTimeout: NodeJS.Timeout;
+let drainingStarted: number;
+let drainingTime: number;
+
+export const drain = (timeout: number): boolean => {
+	if (draining) return false;
+
+	draining = true;
+
+	logger.debug('drain()');
+
+	drainingTimeout = setTimeout(() => {
+		logger.debug('drain() | closing...');
+
+		process.exit(0);
+	}, timeout * 1000);
+
+	drainingTime = timeout * 1000;
+	drainingStarted = Date.now();
+	roomServerConnections.forEach((roomServerConnection) => roomServerConnection.drain(timeout));
+
+	return true;
+};
+
+export const cancelDrain = () => {
+	if (!draining) return;
+
+	logger.debug('cancelDrain()');
+
+	draining = false;
+
+	clearTimeout(drainingTimeout);
+};
+
 (async () => {
 	const {
 		help,
@@ -82,9 +120,6 @@ const showUsage = () => {
 	}
 
 	logger.debug('Starting...', { listenPort, listenHost, ip, announcedIp });
-
-	const roomServerConnections = new Map<string, RoomServerConnection>();
-	const roomServers = new Map<string, RoomServer>();
 
 	interactiveServer(roomServerConnections, roomServers);
 
@@ -158,6 +193,20 @@ const showUsage = () => {
 		const roomServerConnection = new RoomServerConnection({
 			connection: new IOServerConnection(socket)
 		});
+
+		if (draining) {
+			logger.debug(
+				'socket connection | draining [socketId: %s]',
+				socket.id
+			);
+
+			const remaining = Math.max(0, drainingTime - (Date.now() - drainingStarted)) / 1000;
+
+			roomServerConnection.drain(remaining);
+			roomServerConnection.close();
+
+			return;
+		}
 
 		roomServerConnections.set(socket.id, roomServerConnection);
 		roomServerConnection.once('close', () =>
