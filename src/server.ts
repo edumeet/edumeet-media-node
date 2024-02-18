@@ -9,8 +9,9 @@ import { interactiveServer, interactiveServerAddMediaService } from './interacti
 import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
-import { IOServerConnection, Logger } from 'edumeet-common';
+import { Logger } from 'edumeet-common';
 import { createHttpEndpoints } from './httpEndpoints';
+import { IOServerConnection } from './common/IOServerConnection';
 
 const logger = new Logger('MediaNode');
 
