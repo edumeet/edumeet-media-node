@@ -2681,10 +2681,10 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mediasoup@^3.13.1:
-  version "3.13.16"
-  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.13.16.tgz#e75c1ca4a4a6ccb43e097ad178fecf22e32837a9"
-  integrity sha512-PcSTZRB4+PZhLkXqaEiL9WBz0ugHV7q7jeTkpaiR0CX+RkfU4xIN8MoOQxw0a/2uOZp1mMch7u873gCVeEntNw==
+mediasoup@^3.13.19:
+  version "3.13.19"
+  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.13.19.tgz#388cc972a231c06d3f0a0a43d43495b897dfc9c4"
+  integrity sha512-rNYZg1gcqGGzYPfKoGZq4NCrp/4YIiT0cdt+0oOdvu1vAcPCNqzaMWNRDg+i6EMCvan4PKhVStJOHoEwJg7Tdw==
   dependencies:
     debug "^4.3.4"
     flatbuffers "^23.5.26"
