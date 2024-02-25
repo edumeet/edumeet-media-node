@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM node:20-bookworm-slim
 
 ARG listenPort=3000
 ENV LISTEN_PORT=$listenPort
@@ -10,8 +10,6 @@ ARG rtcMaxPort=40249
 ENV RTC_MAX_PORT=$rtcMaxPort
 
 WORKDIR /usr/src/app
-
-RUN apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -yq build-essential python3-pip; apt-get clean
 
 COPY . .
 
