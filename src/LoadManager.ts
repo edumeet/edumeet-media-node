@@ -17,6 +17,7 @@ export default class LoadManager {
 	public uploadBandwidth = 0;
 	public downloadBandwidth = 0;
 	public cpuLoad = 0;
+	public cpuLoads: number[] = [];
 
 	constructor(mediaService: MediaService, availableBandwidth: AvailableBandwidth, loadPollingInterval: number) {
 		this.mediaService = mediaService;
@@ -35,14 +36,15 @@ export default class LoadManager {
 	}
 
 	private async pollLoad(): Promise<void> {
-		const cpuUsages: number[] = [];
 		let cpuLoad = 0;
 		let networkLoad = 0;
+
+		this.cpuLoads = [];
 
 		for (const worker of this.mediaService.workers.items) {
 			const { cpuUsage } = worker.appData as unknown as WorkerData;
 
-			cpuUsages.push(cpuUsage);
+			this.cpuLoads.push(cpuUsage);
 			cpuLoad += cpuUsage;
 		}
 
@@ -66,7 +68,7 @@ export default class LoadManager {
 
 		logger.debug(
 			'pollLoad() [cpuLoads: %o, uploadBw: %s, downloadBw: %s]',
-			cpuUsages,
+			this.cpuLoads,
 			this.uploadBandwidth.toFixed(3),
 			this.downloadBandwidth.toFixed(3)
 		);
@@ -83,6 +85,7 @@ export default class LoadManager {
 		return JSON.stringify({
 			load: this.load,
 			cpuLoad: this.cpuLoad,
+			cpuLoads: this.cpuLoads,
 			uploadBandwidth: this.uploadBandwidth,
 			downloadBandwidth: this.downloadBandwidth,
 			uploadBandwidthUsage: (this.uploadBandwidth / this.availableBandwidth.upload) * 100,
