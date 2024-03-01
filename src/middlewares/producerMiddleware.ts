@@ -181,14 +181,14 @@ export const createProducerMiddleware = ({
 					}
 				});
 
-				producer.on('score', (score) => roomServerConnection.notify({
-					method: 'producerScore',
-					data: {
-						routerId,
-						producerId: producer.id,
-						score
-					}
-				}));
+				// producer.on('score', (score) => roomServerConnection.notify({
+				// 	method: 'producerScore',
+				// 	data: {
+				// 		routerId,
+				// 		producerId: producer.id,
+				// 		score
+				// 	}
+				// }));
 
 				response.id = producer.id;
 				context.handled = true;
