@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import os from 'os';
 import MediaService from './MediaService';
+import LoadManager from './LoadManager';
 
-export const createHttpEndpoints = (mediaService: MediaService) => {
+export const createHttpEndpoints = (mediaService: MediaService, loadManager: LoadManager) => {
 	return (
 		req: IncomingMessage,
 		res: ServerResponse<IncomingMessage> & { req: IncomingMessage; }
@@ -31,7 +31,7 @@ export const createHttpEndpoints = (mediaService: MediaService) => {
 			case '/load': {
 				res.writeHead(200, { 'Content-Type': 'text/plain' });
 
-				return res.end(String(os.loadavg()[0] / os.cpus().length));
+				return res.end(loadManager.getLoadJson());
 			}
 
 			default: {

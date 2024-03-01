@@ -12,6 +12,7 @@ import { RoomServerConnection } from './RoomServerConnection';
 import { Logger } from 'edumeet-common';
 import { createHttpEndpoints } from './httpEndpoints';
 import { IOServerConnection } from './common/IOServerConnection';
+import LoadManager from './LoadManager';
 
 const logger = new Logger('MediaNode');
 
@@ -23,6 +24,10 @@ const showUsage = () => {
 	logger.debug('    The host to listen for incoming connections socket connections.\n\n');
 	logger.debug('  --secret <string> (optional, default: none)');
 	logger.debug('    The secret to use for authenticating with the room server.\n\n');
+	logger.debug('  --availableUpload <bitrate> (optional, default: 1000)');
+	logger.debug('    The available upload bandwidth in Mbps.\n\n');
+	logger.debug('  --availableDownload <bitrate> (optional, default: 1000)');
+	logger.debug('    The available download bandwidth in Mbps.\n\n');
 	logger.debug('  --cert <path> (optional, default: ./certs/edumeet-demo-cert.pem)');
 	logger.debug('    The path to the certificate file used for socket.\n\n');
 	logger.debug('  --key <path> (optional, default: ./certs/edumeet-demo-key.pem)');
@@ -47,8 +52,8 @@ const showUsage = () => {
 	logger.debug('    Flag indicate to use ObserveRTC plugin for monitoring the SFU.\n\n');
 	logger.debug('  --pollStatsProbability <[0..1]> (optional, default: 1.0)');
 	logger.debug('    The probability of polling stats by the monitor from transports, producers, consumers, dataProducers or dataConsumers.\n\n');
-	logger.debug('  --cpuPollingInterval <ms> (optional, default: 10000)');
-	logger.debug('    The interval in ms to poll CPU usage.\n\n');
+	logger.debug('  --loadPollingInterval <ms> (optional, default: 10000)');
+	logger.debug('    The interval in ms to poll load usage.\n\n');
 	logger.debug('  --cpuPercentCascadingLimit <percent> (optional, default: 66)');
 	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
 };
@@ -98,6 +103,8 @@ export const cancelDrain = () => {
 		listenPort = 3000,
 		listenHost = '0.0.0.0',
 		secret,
+		availableUpload = 1000,
+		availableDownload = 1000,
 		cert = './certs/edumeet-demo-cert.pem',
 		key = './certs/edumeet-demo-key.pem',
 		ip,
@@ -110,7 +117,7 @@ export const cancelDrain = () => {
 		numberOfWorkers = os.cpus().length,
 		useObserveRTC = true,
 		pollStatsProbability = 1.0,
-		cpuPollingInterval = 10_000,
+		loadPollingInterval = 10_000,
 		cpuPercentCascadingLimit = 66,
 	} = minimist(process.argv.slice(2));
 	
@@ -135,7 +142,7 @@ export const cancelDrain = () => {
 		numberOfWorkers,
 		useObserveRTC,
 		pollStatsProbability,
-		cpuPollingInterval,
+		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}).catch((error) => {
 		logger.error('MediaService creation failed: %o', error);
@@ -143,9 +150,11 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	});
 
+	const loadManager = new LoadManager(mediaService, { upload: availableUpload, download: availableDownload }, loadPollingInterval);
+
 	interactiveServerAddMediaService(mediaService);
 
-	const httpEndpoints = createHttpEndpoints(mediaService);
+	const httpEndpoints = createHttpEndpoints(mediaService, loadManager);
 
 	const httpsServer = https.createServer({
 		cert: fs.readFileSync(cert),
@@ -192,7 +201,8 @@ export const cancelDrain = () => {
 		}
 
 		const roomServerConnection = new RoomServerConnection({
-			connection: new IOServerConnection(socket)
+			connection: new IOServerConnection(socket),
+			loadManager
 		});
 
 		if (draining) {

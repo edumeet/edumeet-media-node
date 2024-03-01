@@ -181,26 +181,26 @@ export const createConsumerMiddleware = ({
 					}
 				}));
 		
-				consumer.on('score', (score) => roomServerConnection.notify({
-					method: 'consumerScore',
-					data: {
-						routerId,
-						consumerId: consumer.id,
-						score
-					}
-				}));
-		
-				consumer.on('layerschange', (layers) => {
-					if (!layers) logger.warn('layerschange event with null layers');
-					roomServerConnection.notify({
-						method: 'consumerLayersChanged',
-						data: {
-							routerId,
-							consumerId: consumer.id,
-							layers
-						}
-					}); 
-				});
+				// 	consumer.on('score', (score) => roomServerConnection.notify({
+				// 		method: 'consumerScore',
+				// 		data: {
+				// 			routerId,
+				// 			consumerId: consumer.id,
+				// 			score
+				// 		}
+				// 	}));
+				// 
+				// 	consumer.on('layerschange', (layers) => {
+				// 		if (!layers) logger.warn('layerschange event with null layers');
+				// 		roomServerConnection.notify({
+				// 			method: 'consumerLayersChanged',
+				// 			data: {
+				// 				routerId,
+				// 				consumerId: consumer.id,
+				// 				layers
+				// 			}
+				// 		}); 
+				// 	});
 
 				response.id = consumer.id;
 				response.kind = consumer.kind;

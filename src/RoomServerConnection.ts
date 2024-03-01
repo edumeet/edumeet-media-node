@@ -8,12 +8,13 @@ import {
 	skipIfClosed,
 	SocketMessage
 } from 'edumeet-common';
-import { getCpuLoad } from './common/utils';
+import LoadManager from './LoadManager';
 
 const logger = new Logger('RoomServerConnection');
 
 export interface RoomServerConnectionOptions {
 	connection: BaseConnection;
+	loadManager: LoadManager;
 }
 
 export interface RoomServerConnectionContext {
@@ -34,16 +35,19 @@ export declare interface RoomServerConnection {
 export class RoomServerConnection extends EventEmitter {
 	public closed = false;
 	public connection: BaseConnection;
+	private loadManager: LoadManager;
 	public pipeline = Pipeline<RoomServerConnectionContext>();
 
 	constructor({
 		connection,
+		loadManager
 	}: RoomServerConnectionOptions) {
 		logger.debug('constructor()');
 
 		super();
 
 		this.connection = connection;
+		this.loadManager = loadManager;
 		this.handleConnection();
 	}
 
@@ -99,7 +103,7 @@ export class RoomServerConnection extends EventEmitter {
 				await this.pipeline.execute(context);
 
 				if (context.handled) {
-					context.response.load = getCpuLoad();
+					context.response.load = this.loadManager.load;
 					respond(context.response);
 				} else {
 					logger.debug('request() unhandled request [method: %s]', request.method);
@@ -122,7 +126,7 @@ export class RoomServerConnection extends EventEmitter {
 
 		if (!notification.data) notification.data = {};
 
-		notification.data.load = getCpuLoad();
+		notification.data.load = this.loadManager.load;
 
 		try {
 			this.connection.notify(notification);
@@ -137,7 +141,7 @@ export class RoomServerConnection extends EventEmitter {
 
 		if (!request.data) request.data = {};
 
-		request.data.load = getCpuLoad();
+		request.data.load = this.loadManager.load;
 	
 		try {
 			return await this.connection.request(request);

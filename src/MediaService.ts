@@ -72,7 +72,7 @@ export interface MediaServiceOptions {
 	numberOfWorkers: number;
 	useObserveRTC: boolean;
 	pollStatsProbability: number;
-	cpuPollingInterval: number;
+	loadPollingInterval: number;
 	cpuPercentCascadingLimit: number;
 }
 
@@ -95,7 +95,7 @@ export default class MediaService {
 	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
 	public readonly monitor?: MediasoupMonitor;
-	private readonly cpuPollingInterval: number;
+	private readonly loadPollingInterval: number;
 	private readonly cpuPercentCascadingLimit: number;
 	private workerResourceCheckInterval?: NodeJS.Timeout;
 
@@ -107,7 +107,7 @@ export default class MediaService {
 		maxOutgoingBitrate,
 		useObserveRTC,
 		pollStatsProbability,
-		cpuPollingInterval,
+		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}: MediaServiceOptions) {
 		logger.debug('constructor()');
@@ -118,7 +118,7 @@ export default class MediaService {
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
 		this.monitor = useObserveRTC ? this.createMonitor(pollStatsProbability) : undefined;
-		this.cpuPollingInterval = cpuPollingInterval;
+		this.loadPollingInterval = loadPollingInterval;
 		this.cpuPercentCascadingLimit = cpuPercentCascadingLimit;
 	}
 
@@ -239,6 +239,8 @@ export default class MediaService {
 			const resourses = await Promise.allSettled(
 				this.workers.items.map((w) => w.getResourceUsage())
 			);
+			
+			const usages: number[] = [];
 
 			resourses.forEach((result, index) => {
 				if (result.status === 'fulfilled') {
@@ -252,17 +254,17 @@ export default class MediaService {
 
 					workerData.cpuUsage = (
 						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) / 
-						this.cpuPollingInterval
+						this.loadPollingInterval
 					) * 100;
 					/* eslint-enable camelcase */
 					workerData.resourceUsage = result.value;
 
-					logger.debug('startWorkers() worker resource usage [workerPid: %s, cpuUsage: %s]', worker.pid, workerData.cpuUsage);
+					usages.push(workerData.cpuUsage);
 				} else {
 					logger.error('startWorkers() error getting worker resource usage [error: %o]', result.reason);
 				}
 			});
-		}, this.cpuPollingInterval);
+		}, this.loadPollingInterval);
 	}
 
 	@skipIfClosed
