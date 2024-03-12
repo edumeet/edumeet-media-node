@@ -113,7 +113,9 @@ export default class MediaService {
 		logger.debug('constructor()');
 
 		this.ip = ip;
-		this.announcedIp = announcedIp;
+
+		if (announcedIp && announcedIp !== ip) this.announcedIp = announcedIp;
+
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
