@@ -3,7 +3,8 @@
     "compilerOptions": {
 		"experimentalDecorators": true,
 		"resolveJsonModule": true,
-        "outDir": "../dist"
+    "outDir": "../dist",
+		"sourceMap": true,
     },
     "include": ["**/*"]
 }
