@@ -90,8 +90,8 @@ export default class MediaService {
 	}
 
 	public closed = false;
-	public ipv: string;
-	public ipv6: string;
+	public ip: string;
+	public ip6: string;
 	public announcedIp?: string;
 	public announcedIp6?: string;
 	public initialAvailableOutgoingBitrate: number;
