@@ -62,8 +62,10 @@ interface MetricsData {
 }
 
 export interface MediaServiceOptions {
-	ip: string;
+	ip?: string;
+	ip6?: string;
 	announcedIp?: string;
+	announcedIp6?: string;
 	initialAvailableOutgoingBitrate: number;
 	maxIncomingBitrate: number;
 	maxOutgoingBitrate: number;
@@ -88,8 +90,10 @@ export default class MediaService {
 	}
 
 	public closed = false;
-	public ip: string;
+	public ipv: string;
+	public ipv6: string;
 	public announcedIp?: string;
+	public announcedIp6?: string;
 	public initialAvailableOutgoingBitrate: number;
 	public maxIncomingBitrate: number;
 	public maxOutgoingBitrate: number;
@@ -101,7 +105,9 @@ export default class MediaService {
 
 	constructor({
 		ip,
+		ip6,
 		announcedIp,
+		announcedIp6,
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
@@ -113,8 +119,10 @@ export default class MediaService {
 		logger.debug('constructor()');
 
 		this.ip = ip;
+		this.ip6 = ip6;
 
 		if (announcedIp && announcedIp !== ip) this.announcedIp = announcedIp;
+		if (announcedIp6 && announcedIp6 !== ip6) this.announcedIp6 = announcedIp6;
 
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
@@ -167,17 +175,35 @@ export default class MediaService {
 		const worker = await mediasoup.createWorker(settings);
 		const workerData = worker.appData as unknown as WorkerData;
 
-		const webRtcServer = await worker.createWebRtcServer({
-			listenInfos: [ {
+		let options = {
+			listenInfos: []
+		};
+		if (this.ip)
+			options.listenInfos.push({
 				protocol: 'udp',
 				ip: this.ip,
 				announcedIp: this.announcedIp,
-			}, {
+			},
+			{
 				protocol: 'tcp',
 				ip: this.ip,
 				announcedIp: this.announcedIp,
-			} ]
-		});
+			});
+		};
+		if (this.ip6)
+			options.listenInfos.push({
+				protocol: 'udp',
+				ip: this.ip6,
+				announcedIp: this.announcedIp6,
+			},
+			{
+				protocol: 'tcp',
+				ip: this.ip6,
+				announcedIp: this.announcedIp6,
+			});
+		};
+
+		const webRtcServer = await worker.createWebRtcServer(options);
 
 		workerData.webRtcServer = webRtcServer;
 

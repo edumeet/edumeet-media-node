@@ -34,8 +34,12 @@ const showUsage = () => {
 	logger.debug('    The path to the key file used for socket.\n\n');
 	logger.debug('  --ip <ip> (required)');
 	logger.debug('    The IP address used to create mediasoup transports.\n\n');
+	logger.debug('  --ip6 <ip> (required)');
+	logger.debug('    The IPv6 address used to create mediasoup transports.\n\n');
 	logger.debug('  --announcedIp <ip> (optional, default: none)');
-	logger.debug('    The IP address to be announced to clients for mediasoup transports.\n\n');
+	logger.debug('    The IPv4 address to be announced to clients for mediasoup transports.\n\n');
+	logger.debug('  --announcedIp6 <ip> (optional, default: none)');
+	logger.debug('    The IPv6 address to be announced to clients for mediasoup transports.\n\n');
 	logger.debug('  --initialAvailableOutgoingBitrate <bitrate> (optional, default: 600000)');
 	logger.debug('    The initial available outgoing bitrate for mediasoup transports.\n\n');
 	logger.debug('  --maxIncomingBitrate <bitrate> (optional, default: 10000000)');
@@ -108,7 +112,9 @@ export const cancelDrain = () => {
 		cert = './certs/edumeet-demo-cert.pem',
 		key = './certs/edumeet-demo-key.pem',
 		ip,
+		ip6,
 		announcedIp,
+		announcedIp6,
 		initialAvailableOutgoingBitrate = 600000,
 		maxIncomingBitrate = 10000000,
 		maxOutgoingBitrate = 10000000,
@@ -127,13 +133,15 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
-	logger.debug('Starting...', { listenPort, listenHost, ip, announcedIp });
+	logger.debug('Starting...', { listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 });
 
 	interactiveServer(roomServerConnections, roomServers);
 
 	const mediaService = await MediaService.create({
 		ip,
+		ip6,
 		announcedIp,
+		announcedIp6,
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
