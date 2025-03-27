@@ -36,8 +36,8 @@ export const createTransportMiddleware = ({
 				const routerData = router.appData as unknown as RouterData;
 				const transport = await router.createPipeTransport({
 					listenIp: {
-						ip: internal ? '127.0.0.1' : mediaService.ip,
-						announcedIp: internal ? undefined : mediaService.announcedIp
+						ip: internal ? '127.0.0.1' : (mediaService.ip || mediaService.ip6 || '127.0.0.1'),
+						announcedIp: internal ? undefined : (mediaService.announcedIp || mediaService.announcedIp6)
 					},
 					enableSrtp: !internal,
 					enableSctp: true,

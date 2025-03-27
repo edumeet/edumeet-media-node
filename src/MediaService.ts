@@ -1,7 +1,7 @@
 import * as mediasoup from 'mediasoup';
 import { Router } from 'mediasoup/node/lib/Router';
 import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { Transport } from 'mediasoup/node/lib/Transport';
+import { Transport, TransportListenInfo } from 'mediasoup/node/lib/Transport';
 import { RtpHeaderExtension } from 'mediasoup/node/lib/RtpParameters';
 import {
 	Worker,
@@ -62,8 +62,10 @@ interface MetricsData {
 }
 
 export interface MediaServiceOptions {
-	ip: string;
+	ip?: string;
+	ip6?: string;
 	announcedIp?: string;
+	announcedIp6?: string;
 	initialAvailableOutgoingBitrate: number;
 	maxIncomingBitrate: number;
 	maxOutgoingBitrate: number;
@@ -88,8 +90,10 @@ export default class MediaService {
 	}
 
 	public closed = false;
-	public ip: string;
+	public ip: string | undefined;
+	public ip6: string | undefined;
 	public announcedIp?: string;
+	public announcedIp6?: string;
 	public initialAvailableOutgoingBitrate: number;
 	public maxIncomingBitrate: number;
 	public maxOutgoingBitrate: number;
@@ -101,7 +105,9 @@ export default class MediaService {
 
 	constructor({
 		ip,
+		ip6,
 		announcedIp,
+		announcedIp6,
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
@@ -112,9 +118,13 @@ export default class MediaService {
 	}: MediaServiceOptions) {
 		logger.debug('constructor()');
 
-		this.ip = ip;
+		if (ip)
+			this.ip = ip;
+		if (ip6)
+			this.ip6 = ip6;
 
 		if (announcedIp && announcedIp !== ip) this.announcedIp = announcedIp;
+		if (announcedIp6 && announcedIp6 !== ip6) this.announcedIp6 = announcedIp6;
 
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
@@ -167,17 +177,41 @@ export default class MediaService {
 		const worker = await mediasoup.createWorker(settings);
 		const workerData = worker.appData as unknown as WorkerData;
 
-		const webRtcServer = await worker.createWebRtcServer({
-			listenInfos: [ {
-				protocol: 'udp',
-				ip: this.ip,
-				announcedIp: this.announcedIp,
-			}, {
-				protocol: 'tcp',
-				ip: this.ip,
-				announcedIp: this.announcedIp,
-			} ]
-		});
+		const options: { listenInfos: Array<TransportListenInfo> } = {
+			listenInfos: []
+		};
+
+		if (this.ip) {
+			options.listenInfos.push(
+				{
+					protocol: 'udp',
+					ip: this.ip,
+					announcedIp: this.announcedIp || undefined, // Ensure announcedIp is undefined if not provided
+				},
+				{
+					protocol: 'tcp',
+					ip: this.ip,
+					announcedIp: this.announcedIp || undefined,
+				}
+			);
+		}
+
+		if (this.ip6) {
+			options.listenInfos.push(
+				{
+					protocol: 'udp',
+					ip: this.ip6,
+					announcedIp: this.announcedIp6 || undefined,
+				},
+				{
+					protocol: 'tcp',
+					ip: this.ip6,
+					announcedIp: this.announcedIp6 || undefined,
+				}
+			);
+		}
+
+		const webRtcServer = await worker.createWebRtcServer(options);
 
 		workerData.webRtcServer = webRtcServer;
 
