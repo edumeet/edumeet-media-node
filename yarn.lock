@@ -2639,7 +2639,7 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mediasoup@^3.13.19:
+mediasoup@^3.15.1:
   version "3.19.3"
   resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.19.3.tgz#8ee68e589eff634b6a3a71663048b76040f80241"
   integrity sha512-1BH68i/q/hVAuSQHFCMq6TJDwca74KMtxE7k79BGD+wrnkvi3PTpaNaVjJ/JLjpCZnBZ3WrtI3Js0nw7NHSAXw==
