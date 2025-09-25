@@ -483,7 +483,9 @@ export default class MediaService {
 			return transport.constructor.name as MediasoupTransportType;
 		};
 
-		const config: MediasoupMonitorConfig = {
+		const config: MediasoupMonitorConfig = {};
+
+		/* const config: MediasoupMonitorConfig = {
 			collectingPeriodInMs: 5000,
 			samplingPeriodInMs: 30000,
 			mediasoup,
@@ -498,7 +500,7 @@ export default class MediaService {
 				pollDataProducerStats: pollStats,
 				pollDataConsumerStats: pollStats,
 			}
-		};
+		}; */
 
 		return createMediasoupMonitor(config);
 	}
