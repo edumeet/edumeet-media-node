@@ -183,7 +183,8 @@ export const createAudioObserverMiddleware = ({
 				});
 
 				audioLevelObserver.observer.on('volumes', (volumes) => {
-					const audioLevels = volumes.map((volume) => {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const audioLevels = volumes.map((volume: { producer: { id: any; }; volume: any; }) => {
 						return {
 							producerId: volume.producer.id,
 							volume: volume.volume

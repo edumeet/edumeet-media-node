@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
 import MediaService from './MediaService';
-import { Router } from 'mediasoup/node/lib/Router';
 import {
 	RoomServerConnection,
 	RoomServerConnectionContext
@@ -12,6 +11,7 @@ import { createProducerMiddleware } from './middlewares/producerMiddleware';
 import { createConsumerMiddleware } from './middlewares/consumerMiddleware';
 import { Logger, Middleware, skipIfClosed } from 'edumeet-common';
 import { createAudioObserverMiddleware } from './middlewares/audioObserverMiddleware';
+import { Router } from 'mediasoup/types';
 
 const logger = new Logger('RoomServer');
 

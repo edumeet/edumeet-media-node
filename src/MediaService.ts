@@ -1,23 +1,8 @@
 import * as mediasoup from 'mediasoup';
-import { Router } from 'mediasoup/node/lib/Router';
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { Transport, TransportListenInfo } from 'mediasoup/node/lib/Transport';
-import { RtpHeaderExtension } from 'mediasoup/node/lib/RtpParameters';
-import {
-	Worker,
-	WorkerLogLevel,
-	WorkerLogTag
-} from 'mediasoup/node/lib/Worker';
-import { WebRtcTransport } from 'mediasoup/node/lib/WebRtcTransport';
-import { PipeTransport } from 'mediasoup/node/lib/PipeTransport';
-import { Producer } from 'mediasoup/node/lib/Producer';
-import { DataProducer } from 'mediasoup/node/lib/DataProducer';
-import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
-import { WebRtcServer } from 'mediasoup/node/lib/WebRtcServer';
 import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
-import { ActiveSpeakerObserver } from 'mediasoup/node/lib/ActiveSpeakerObserver';
-import { AudioLevelObserver } from 'mediasoup/node/lib/AudioLevelObserver';
+
+import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
 
 const logger = new Logger('MediaService');
 
@@ -498,7 +483,9 @@ export default class MediaService {
 			return transport.constructor.name as MediasoupTransportType;
 		};
 
-		const config: MediasoupMonitorConfig = {
+		const config: MediasoupMonitorConfig = {};
+
+		/* const config: MediasoupMonitorConfig = {
 			collectingPeriodInMs: 5000,
 			samplingPeriodInMs: 30000,
 			mediasoup,
@@ -513,7 +500,7 @@ export default class MediaService {
 				pollDataProducerStats: pollStats,
 				pollDataConsumerStats: pollStats,
 			}
-		};
+		}; */
 
 		return createMediasoupMonitor(config);
 	}
