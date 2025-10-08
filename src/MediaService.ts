@@ -2,7 +2,7 @@ import * as mediasoup from 'mediasoup';
 import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
-import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
+import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, PlainTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
 
 const logger = new Logger('MediaService');
 
@@ -28,6 +28,7 @@ export interface RouterData {
 	workerPid: number;
 	pipeTransports: Map<string, PipeTransport>;
 	webRtcTransports: Map<string, WebRtcTransport>;
+    plainTransports: Map<string, PlainTransport>;
 	producers: Map<string, Producer>;
 	pipeProducers: Map<string, Producer>;
 	consumers: Map<string, Consumer>;
@@ -340,6 +341,7 @@ export default class MediaService {
 							workerPid: worker.pid,
 							pipeTransports: new Map<string, PipeTransport>(),
 							webRtcTransports: new Map<string, WebRtcTransport>(),
+							plainTransports: new Map<string, PlainTransport>(),
 							producers: new Map<string, Producer>(),
 							pipeProducers: new Map<string, Producer>(),
 							consumers: new Map<string, Consumer>(),
