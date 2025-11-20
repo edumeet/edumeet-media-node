@@ -19,7 +19,7 @@
 		"prepare": "husky install"
 	},
 	"devDependencies": {
-		"@tsconfig/node18": "^18.2.4",
+		"@tsconfig/node18": "^18.2.6",
 		"@types/debug": "^4.1.7",
 		"@types/jest": "^29.5.0",
 		"@types/minimist": "^1.2.2",
@@ -29,18 +29,18 @@
 		"eslint": "^8.36.0",
 		"husky": "^8.0.3",
 		"jest": "^29.5.0",
-		"ts-jest": "^29.0.5",
+		"ts-jest": "^29.4.5",
 		"ts-node": "^10.9.1",
-		"typescript": "^5.0.2"
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.3.4",
 		"edumeet-common": "edumeet/edumeet-common#0.5.0",
-		"mediasoup": "^3.15.1",
+		"mediasoup": "^3.19.11",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.7.4",
-		"systeminformation": "^5.22.0"
+		"systeminformation": "^5.27.11"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.0.7",
