@@ -8,8 +8,7 @@ import { DataConsumer } from 'mediasoup/node/lib/DataConsumer';
 import MediaService from '../MediaService';
 import { RoomServerConnection } from '../RoomServerConnection';
 import RoomServer from '../RoomServer';
-
-/* eslint-disable no-var */
+ 
 declare global {
 	var mediaService: MediaService;
 	var roomServerConnections: Map<string, RoomServerConnection>;

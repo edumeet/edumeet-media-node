@@ -612,7 +612,10 @@ export const interactiveServer = (
 
 	try {
 		fs.unlinkSync(SOCKET_PATH);
-	} catch (error) {}
+	} catch (error) {
+		logger.error('interactiveServer() [error: %o]', error);
+
+	}
 
 	server.listen(SOCKET_PATH, () => {
 		logger.debug('InteractiveServer listening [socket: %s}', SOCKET_PATH);
