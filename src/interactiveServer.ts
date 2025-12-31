@@ -611,10 +611,11 @@ export const interactiveServer = (
 	});
 
 	try {
-		fs.unlinkSync(SOCKET_PATH);
+		if (fs.existsSync(SOCKET_PATH)) {
+			fs.unlinkSync(SOCKET_PATH);
+		}
 	} catch (error) {
 		logger.error({ err: error }, 'interactiveServer() [error: %o]');
-
 	}
 
 	server.listen(SOCKET_PATH, () => {
