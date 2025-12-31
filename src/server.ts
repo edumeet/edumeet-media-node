@@ -133,7 +133,7 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
-	logger.debug('Starting...', { listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 });
+	logger.debug({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
 
 	interactiveServer(roomServerConnections, roomServers);
 
