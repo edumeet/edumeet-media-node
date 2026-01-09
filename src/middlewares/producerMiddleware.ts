@@ -372,6 +372,8 @@ export const createProducerMiddleware = ({
 					response.id = dataProducer.id;
 					context.handled = true;
 				} catch (error) {
+					logger.error({ err: error }, 'createProducerMiddleware() [error: %o]');
+
 					throw new Error('produceData failed');
 				}
 

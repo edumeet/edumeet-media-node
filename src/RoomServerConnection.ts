@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 import EventEmitter from 'events';
 import {
 	BaseConnection,
@@ -87,7 +88,7 @@ export class RoomServerConnection extends EventEmitter {
 				if (!context.handled)
 					throw new Error(`no middleware handled the notification [method: ${notification.method}]`);
 			} catch (error) {
-				logger.error('notification() [error: %o]', error);
+				logger.error({ err: error }, 'notification() [error: %o]');
 			}
 		});
 
@@ -111,7 +112,7 @@ export class RoomServerConnection extends EventEmitter {
 					reject('Server error');
 				}
 			} catch (error) {
-				logger.error('request() [error: %o]', error);
+				logger.error({ err: error }, 'request() [error: %o]');
 
 				reject('Server error');
 			}
@@ -131,7 +132,7 @@ export class RoomServerConnection extends EventEmitter {
 		try {
 			this.connection.notify(notification);
 		} catch (error) {
-			logger.error('notify() [error: %o]', error);
+			logger.error({ err: error }, 'notify() [error: %o]');
 		}
 	}
 
@@ -146,7 +147,7 @@ export class RoomServerConnection extends EventEmitter {
 		try {
 			return await this.connection.request(request);
 		} catch (error) {
-			logger.error('request() [error: %o]', error);
+			logger.error({ err: error }, 'request() [error: %o]');
 		}
 	}
 }
