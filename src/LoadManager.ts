@@ -18,6 +18,7 @@ export default class LoadManager {
 	public downloadBandwidth = 0;
 	public cpuLoad = 0;
 	public cpuLoads: number[] = [];
+	private readonly updatedCbs = new Set<() => void>();
 
 	constructor(mediaService: MediaService, availableBandwidth: AvailableBandwidth, loadPollingInterval: number) {
 		this.mediaService = mediaService;
@@ -79,6 +80,8 @@ export default class LoadManager {
 		networkLoad = Math.max(uploadBandwidthPercentage, downloadBandwidthPercentage);
 
 		this.load = Math.max(cpuLoad, networkLoad);
+
+		for (const cb of this.updatedCbs) cb();
 	}
 
 	public getLoadJson(): string {
@@ -91,5 +94,13 @@ export default class LoadManager {
 			uploadBandwidthUsage: (this.uploadBandwidth / this.availableBandwidth.upload) * 100,
 			downloadBandwidthUsage: (this.downloadBandwidth / this.availableBandwidth.download) * 100,
 		});
+	}
+
+	public onUpdatedAdd(cb: () => void): void {
+		this.updatedCbs.add(cb);
+	}
+
+	public onUpdatedRemove(cb: () => void): void {
+		this.updatedCbs.delete(cb);
 	}
 }
