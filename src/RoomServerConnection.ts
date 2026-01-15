@@ -155,8 +155,7 @@ export class RoomServerConnection extends EventEmitter {
 		}
 	}
 
-	@skipIfClosed
-	private readonly handleLoadUpdated = () => {
+	private readonly handleLoadUpdated = (): void => {
 		this.notify({
 			method: 'mediaNodeStats',
 			data: {
