@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { EventEmitter } from 'events';
 import { Router } from 'mediasoup/node/lib/Router';
 

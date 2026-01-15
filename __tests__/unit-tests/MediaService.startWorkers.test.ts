@@ -3,8 +3,10 @@
 
 import * as mediasoup from 'mediasoup';
 jest.mock('mediasoup');
-import { Worker } from 'mediasoup/node/lib/Worker';
-jest.mock('mediasoup/node/lib/Worker');
+// import { Worker } from 'mediasoup/node/lib/Worker';
+// jest.mock('mediasoup/node/lib/Worker');
+
+type Worker = any;
 
 import 'jest';
 import MediaService, { MediaServiceOptions } from '../../src/MediaService';
