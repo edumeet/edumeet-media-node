@@ -38,6 +38,8 @@ export class RoomServerConnection extends EventEmitter {
 	public connection: BaseConnection;
 	private loadManager: LoadManager;
 	public pipeline = Pipeline<RoomServerConnectionContext>();
+	private statsInterval?: NodeJS.Timeout;
+	private readonly statsIntervalMs = 30_000;
 
 	constructor({
 		connection,
@@ -58,6 +60,11 @@ export class RoomServerConnection extends EventEmitter {
 
 		this.closed = true;
 
+		if (this.statsInterval) {
+			clearInterval(this.statsInterval);
+			this.statsInterval = undefined;
+		}
+
 		this.connection.close();
 
 		this.emit('close');
@@ -73,6 +80,8 @@ export class RoomServerConnection extends EventEmitter {
 	@skipIfClosed
 	public handleConnection(): void {
 		logger.debug('addConnection()');
+
+		this.startSendingStats();
 
 		this.connection.on('notification', async (notification) => {
 			try {
@@ -149,5 +158,19 @@ export class RoomServerConnection extends EventEmitter {
 		} catch (error) {
 			logger.error({ err: error }, 'request() [error: %o]');
 		}
+	}
+
+	@skipIfClosed
+	private startSendingStats(): void {
+		if (this.statsInterval) return;
+
+		this.statsInterval = setInterval(() => {
+			this.notify({
+				method: 'mediaNodeStats',
+				data: {
+					load: this.loadManager.load
+				},
+			});
+		}, this.statsIntervalMs);
 	}
 }
