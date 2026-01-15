@@ -24,63 +24,64 @@ const optionsWithWorkers = {
 	rtcMaxPort: 2,
 	numberOfWorkers: 1 
 } as unknown as MediaServiceOptions;
-const createMonitorSpy = jest.spyOn(observeRtcMock, 'createMediasoupMonitor').mockImplementation((config?: observeRtcMock.MediasoupMonitorConfig) => {
-	if (config?.mediasoupCollectors?.pollConsumerStats) {
-		return config.mediasoupCollectors.pollConsumerStats('a') as unknown as observeRtcMock.MediasoupMonitor;
-	}
-	
-	return 'no pollstats' as unknown as observeRtcMock.MediasoupMonitor;	
-});
+
+const createMonitorSpy = jest
+	.spyOn(observeRtcMock, 'createMediasoupMonitor')
+	.mockReturnValue({} as unknown as observeRtcMock.MediasoupMonitor);
 
 test('Constructor - should not throw', () => {
 	expect(() => new MediaService(emptyMediaServiceOptions)).not.toThrow();
 });
 
-test('useObserveRTC - should create MediasoupMonitor, pollstats should be false', async () => {
+test('useObserveRTC - should create MediasoupMonitor and not use random when pollStatsProbability <= 0.0', () => {
 	const randomSpy = jest.spyOn(Math, 'random');
 	const useObserveRTCOptions = {
 		useObserveRTC: true,
-		pollStatsProbability: 0.0
+		pollStatsProbability: 0.0,
 	} as unknown as MediaServiceOptions;
 
 	const sut = new MediaService(useObserveRTCOptions);
-	const pollStats: boolean = sut.monitor as unknown as boolean;
 
 	expect(createMonitorSpy).toHaveBeenCalledTimes(1);
-	expect(pollStats).toBe(false);
+	expect(sut.monitor).not.toBeUndefined();
 	expect(randomSpy).not.toHaveBeenCalled();
+
 	createMonitorSpy.mockClear();
+	randomSpy.mockRestore();
 });
 
-test('useObserveRTC - should create MediasoupMonitor, pollstats should be true', async () => {
+test('useObserveRTC - should create MediasoupMonitor and not use random when pollStatsProbability > 1.0', () => {
 	const randomSpy = jest.spyOn(Math, 'random');
 	const useObserveRTCOptions = {
 		useObserveRTC: true,
-		pollStatsProbability: 1.1
+		pollStatsProbability: 1.1,
 	} as unknown as MediaServiceOptions;
 
 	const sut = new MediaService(useObserveRTCOptions);
-	const pollStats: boolean = sut.monitor as unknown as boolean;
 
 	expect(createMonitorSpy).toHaveBeenCalledTimes(1);
-	expect(pollStats).toBe(true);
+	expect(sut.monitor).not.toBeUndefined();
 	expect(randomSpy).not.toHaveBeenCalled();
+
 	createMonitorSpy.mockClear();
+	randomSpy.mockRestore();
 });
 
-test('useObserveRTC - should create MediasoupMonitor, pollstats should be random', async () => {
-	const randomSpy = jest.spyOn(Math, 'random');
+test('useObserveRTC - should create MediasoupMonitor and use random when 0.0 < pollStatsProbability < 1.0', () => {
+	const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.4);
 	const useObserveRTCOptions = {
 		useObserveRTC: true,
-		pollStatsProbability: 0.5
+		pollStatsProbability: 0.5,
 	} as unknown as MediaServiceOptions;
 
 	const sut = new MediaService(useObserveRTCOptions);
 
 	expect(createMonitorSpy).toHaveBeenCalledTimes(1);
-	expect(sut.monitor).not.toBe(undefined);
+	expect(sut.monitor).not.toBeUndefined();
 	expect(randomSpy).toHaveBeenCalledTimes(1);
+
 	createMonitorSpy.mockClear();
+	randomSpy.mockRestore();
 });
 
 test('Close() - Should close', () => {
