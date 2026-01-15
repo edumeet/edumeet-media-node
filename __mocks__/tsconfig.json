@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"experimentalDecorators": true,
 		"resolveJsonModule": true,
+		"isolatedModules": true,
 	},
 	"include": ["**/*.ts"]
 }

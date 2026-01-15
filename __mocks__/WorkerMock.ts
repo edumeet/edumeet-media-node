@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Consumer } from 'mediasoup/node/lib/Consumer';
 import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
