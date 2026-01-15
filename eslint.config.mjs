@@ -200,4 +200,14 @@ export default defineConfig([ globalIgnores([ '**/jest.config.js','dist/**', 'bu
 		'valid-typeof': 2,
 		yoda: 2,
 	},
+}, {
+	files: [
+		'__tests__/**/*.ts',
+		'__mocks__/**/*.ts',
+	],
+	rules: {
+		'@typescript-eslint/ban-ts-comment': 'off',
+		'@typescript-eslint/no-explicit-any': 'off',
+		'no-multiple-empty-lines': 'off',
+	},
 } ]);
