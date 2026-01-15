@@ -4,6 +4,8 @@
 // import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
 // import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
 
+import { EventEmitter } from 'events';
+
 type Consumer = any;
 type Router = any;
 type RouterOptions = any;
