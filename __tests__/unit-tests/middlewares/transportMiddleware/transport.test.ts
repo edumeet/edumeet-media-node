@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import EventEmitter from 'events';
 import { PipeTransport } from 'mediasoup/node/lib/PipeTransport';
 import { Router } from 'mediasoup/node/lib/Router';

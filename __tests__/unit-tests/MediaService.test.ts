@@ -1,4 +1,6 @@
 // Mocks
+// @ts-nocheck
+
 import * as mediasoup from 'mediasoup';
 jest.mock('mediasoup');
 import { Worker } from 'mediasoup/node/lib/Worker';

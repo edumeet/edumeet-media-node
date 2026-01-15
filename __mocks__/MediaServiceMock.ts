@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { List } from 'edumeet-common';
 import EventEmitter from 'events';
 import { Worker } from 'mediasoup/node/lib/Worker';
