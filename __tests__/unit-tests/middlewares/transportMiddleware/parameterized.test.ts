@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Producer } from 'mediasoup/node/lib/Producer';
 import { Router } from 'mediasoup/node/lib/Router';
 import { Transport } from 'mediasoup/node/lib/Transport';

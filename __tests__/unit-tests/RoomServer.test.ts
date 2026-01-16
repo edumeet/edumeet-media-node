@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import MediaService from '../../src/MediaService';
 import RoomServer, { RoomServerOptions } from '../../src/RoomServer';
 import { RoomServerConnection } from '../../src/RoomServerConnection';

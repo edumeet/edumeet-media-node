@@ -50,6 +50,8 @@ export class RoomServerConnection extends EventEmitter {
 		this.connection = connection;
 		this.loadManager = loadManager;
 		this.handleConnection();
+
+		this.loadManager.onUpdatedAdd(this.handleLoadUpdated);
 	}
 
 	@skipIfClosed
@@ -57,6 +59,8 @@ export class RoomServerConnection extends EventEmitter {
 		logger.debug('close()');
 
 		this.closed = true;
+
+		this.loadManager.onUpdatedRemove(this.handleLoadUpdated);
 
 		this.connection.close();
 
@@ -150,4 +154,13 @@ export class RoomServerConnection extends EventEmitter {
 			logger.error({ err: error }, 'request() [error: %o]');
 		}
 	}
+
+	private readonly handleLoadUpdated = (): void => {
+		this.notify({
+			method: 'mediaNodeStats',
+			data: {
+				load: this.loadManager.load
+			}
+		});
+	};
 }

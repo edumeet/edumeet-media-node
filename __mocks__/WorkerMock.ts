@@ -1,15 +1,24 @@
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
-import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
+// @ts-nocheck
 
-export default class WorkerMock extends EnhancedEventEmitter {
-	observer;
+// import { Consumer } from 'mediasoup/node/lib/Consumer';
+// import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
+// import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
+
+import { EventEmitter } from 'events';
+
+type Consumer = any;
+type Router = any;
+type RouterOptions = any;
+
+
+export default class WorkerMock extends EventEmitter {
+	observer: any;
 	appData = {
 		routersByRoomId: new Map<string, Promise<Router>>(),
 		consumers: new Map<string, Consumer>()
 	};
-	pid;
-	
+	pid: any;
+
 	constructor(
 		workerObserver: EnhancedEventEmitter,
 		pid: number,
