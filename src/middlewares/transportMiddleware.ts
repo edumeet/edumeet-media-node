@@ -268,6 +268,114 @@ export const createTransportMiddleware = ({
 				break;
 			}
 
+			case 'createPlainTransport': {
+				const {
+					routerId,
+					comedia = false,
+					rtcpMux = true,
+					enableSctp = false,
+					sctpCapabilities,
+					enableSrtp = false,
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const transport = await router.createPlainTransport({
+					listenIp: {
+						ip: mediaService.ip || mediaService.ip6 || '127.0.0.1',
+						announcedIp: mediaService.announcedIp || mediaService.announcedIp6
+					},
+					rtcpMux,
+					comedia,
+					enableSctp,
+					numSctpStreams: (sctpCapabilities ?? {}).numStreams,
+					enableSrtp,
+				});
+
+				routerData.plainTransports = routerData.plainTransports || new Map();
+				routerData.plainTransports.set(transport.id, transport);
+				transport.observer.once('close', () => {
+					routerData.plainTransports.delete(transport.id);
+
+					if (!transport.appData.remoteClosed) {
+						roomServerConnection.notify({
+							method: 'plainTransportClosed',
+							data: {
+								routerId,
+								transportId: transport.id
+							}
+						});
+					}
+				});
+
+				response.id = transport.id;
+				response.tuple = {
+					localIp: transport.tuple.localIp,
+					localPort: transport.tuple.localPort
+				};
+				response.rtcpTuple = transport.rtcpTuple ? {
+					localIp: transport.rtcpTuple.localIp,
+					localPort: transport.rtcpTuple.localPort
+				} : undefined;
+				response.srtpParameters = transport.srtpParameters;
+				response.sctpParameters = transport.sctpParameters;
+				context.handled = true;
+
+				break;
+			}
+
+			case 'connectPlainTransport': {
+				const {
+					routerId,
+					transportId,
+					...transportOptions
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const transport = routerData.plainTransports.get(transportId);
+
+				if (!transport)
+					throw new Error(`plainTransport with id "${transportId}" not found`);
+
+				await transport.connect(transportOptions);
+				context.handled = true;
+
+				break;
+			}
+
+			case 'closePlainTransport': {
+				const {
+					routerId,
+					transportId
+				} = message.data;
+
+				const router = roomServer.routers.get(routerId);
+
+				if (!router)
+					throw new Error(`router with id "${routerId}" not found`);
+
+				const routerData = router.appData as unknown as RouterData;
+				const transport = routerData.plainTransports.get(transportId);
+
+				if (!transport)
+					throw new Error(`plainTransport with id "${transportId}" not found`);
+
+				transport.appData.remoteClosed = true;
+				transport.close();
+				context.handled = true;
+
+				break;
+			}
+
 			default: {
 				break;
 			}
