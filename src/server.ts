@@ -75,12 +75,13 @@ export const drain = (timeout: number): boolean => {
 
 	draining = true;
 
-	logger.debug('drain()');
+	logger.info({ timeout }, 'drain() | started with timeout in seconds');
 
 	drainingTimeout = setTimeout(() => {
-		logger.debug('drain() | closing...');
+		logger.info('drain() | timeout reached, closing all rooms and room-server connections...');
 
-		process.exit(0);
+		roomServers.forEach((roomServer) => roomServer.close());
+
 	}, timeout * 1000);
 
 	drainingTime = timeout * 1000;
@@ -93,7 +94,7 @@ export const drain = (timeout: number): boolean => {
 export const cancelDrain = () => {
 	if (!draining) return;
 
-	logger.debug('cancelDrain()');
+	logger.info('cancelDrain()');
 
 	draining = false;
 
@@ -133,7 +134,7 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
-	logger.debug({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
+	logger.info({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
 
 	interactiveServer(roomServerConnections, roomServers);
 
@@ -153,7 +154,7 @@ export const cancelDrain = () => {
 		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}).catch((error) => {
-		logger.error('MediaService creation failed: %o', error);
+		logger.error({ error }, 'MediaService creation failed');
 
 		return process.exit(1);
 	});
@@ -184,7 +185,7 @@ export const cancelDrain = () => {
 	httpsServer.on('request', httpEndpoints);
 
 	httpsServer.listen({ port: listenPort, host: listenHost }, () =>
-		logger.debug('httpsServer.listen() [port: %s]', listenPort));
+		logger.info({ listenPort }, 'httpsServer.listen()'));
 
 	const socketServer = new IOServer(httpsServer, {
 		cors: { origin: [ '*' ] },
@@ -192,18 +193,12 @@ export const cancelDrain = () => {
 	});
 
 	socketServer.on('connection', (socket) => {
-		logger.debug(
-			'socket connection [socketId: %s]',
-			socket.id
-		);
+		logger.info({ socketId: socket.id }, 'socket connection');
 
 		const { secret: connectionSecret } = socket.handshake.query;
 
 		if (connectionSecret !== secret) {
-			logger.error(
-				'invalid secret [socketId: %s]',
-				socket.id
-			);
+			logger.error({ socketId: socket.id }, 'invalid secret');
 
 			return socket.disconnect(true);
 		}
@@ -214,10 +209,7 @@ export const cancelDrain = () => {
 		});
 
 		if (draining) {
-			logger.debug(
-				'socket connection | draining [socketId: %s]',
-				socket.id
-			);
+			logger.info({ socketId: socket.id }, 'socket connection | new socket connection rejected - draining');
 
 			const remaining = Math.max(0, drainingTime - (Date.now() - drainingStarted)) / 1000;
 
@@ -241,7 +233,7 @@ export const cancelDrain = () => {
 	});
 
 	const close = () => {
-		logger.debug('close()');
+		logger.info('close()');
 
 		roomServerConnections.forEach((roomServerConnection) =>
 			roomServerConnection.close());
@@ -256,5 +248,5 @@ export const cancelDrain = () => {
 	process.once('SIGQUIT', close);
 	process.once('SIGTERM', close);
 
-	logger.debug('Started!');
+	logger.info('Started!');
 })();
