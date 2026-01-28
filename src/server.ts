@@ -75,12 +75,13 @@ export const drain = (timeout: number): boolean => {
 
 	draining = true;
 
-	logger.debug('drain()');
+	logger.info({ timeout }, 'drain() | started with timeout in seconds');
 
 	drainingTimeout = setTimeout(() => {
-		logger.debug('drain() | closing...');
+		logger.info('drain() | timeout reached, closing all rooms and room-server connections...')
 
-		process.exit(0);
+		roomServers.forEach((roomServer) => roomServer.close());
+
 	}, timeout * 1000);
 
 	drainingTime = timeout * 1000;
@@ -93,7 +94,7 @@ export const drain = (timeout: number): boolean => {
 export const cancelDrain = () => {
 	if (!draining) return;
 
-	logger.debug('cancelDrain()');
+	logger.info('cancelDrain()');
 
 	draining = false;
 
@@ -214,10 +215,7 @@ export const cancelDrain = () => {
 		});
 
 		if (draining) {
-			logger.debug(
-				'socket connection | draining [socketId: %s]',
-				socket.id
-			);
+			logger.info({ socketId }, 'socket connection | new socket connection rejected - draining');
 
 			const remaining = Math.max(0, drainingTime - (Date.now() - drainingStarted)) / 1000;
 
@@ -241,7 +239,7 @@ export const cancelDrain = () => {
 	});
 
 	const close = () => {
-		logger.debug('close()');
+		logger.info('close()');
 
 		roomServerConnections.forEach((roomServerConnection) =>
 			roomServerConnection.close());
@@ -256,5 +254,5 @@ export const cancelDrain = () => {
 	process.once('SIGQUIT', close);
 	process.once('SIGTERM', close);
 
-	logger.debug('Started!');
+	logger.info('Started!');
 })();
