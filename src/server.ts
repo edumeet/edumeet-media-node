@@ -134,7 +134,7 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
-	logger.debug({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
+	logger.info({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
 
 	interactiveServer(roomServerConnections, roomServers);
 
@@ -154,7 +154,7 @@ export const cancelDrain = () => {
 		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}).catch((error) => {
-		logger.error('MediaService creation failed: %o', error);
+		logger.error({ error }, 'MediaService creation failed');
 
 		return process.exit(1);
 	});
@@ -185,7 +185,7 @@ export const cancelDrain = () => {
 	httpsServer.on('request', httpEndpoints);
 
 	httpsServer.listen({ port: listenPort, host: listenHost }, () =>
-		logger.debug('httpsServer.listen() [port: %s]', listenPort));
+		logger.info({ listenPort }, 'httpsServer.listen()'));
 
 	const socketServer = new IOServer(httpsServer, {
 		cors: { origin: [ '*' ] },
@@ -193,18 +193,12 @@ export const cancelDrain = () => {
 	});
 
 	socketServer.on('connection', (socket) => {
-		logger.debug(
-			'socket connection [socketId: %s]',
-			socket.id
-		);
+		logger.info({ socketId: socket.id }, 'socket connection');
 
 		const { secret: connectionSecret } = socket.handshake.query;
 
 		if (connectionSecret !== secret) {
-			logger.error(
-				'invalid secret [socketId: %s]',
-				socket.id
-			);
+			logger.error({ socketId: socket.id }, 'invalid secret');
 
 			return socket.disconnect(true);
 		}
@@ -215,7 +209,7 @@ export const cancelDrain = () => {
 		});
 
 		if (draining) {
-			logger.info({ socketId }, 'socket connection | new socket connection rejected - draining');
+			logger.info({ socketId: socket.id }, 'socket connection | new socket connection rejected - draining');
 
 			const remaining = Math.max(0, drainingTime - (Date.now() - drainingStarted)) / 1000;
 
