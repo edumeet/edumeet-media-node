@@ -78,7 +78,7 @@ export const drain = (timeout: number): boolean => {
 	logger.info({ timeout }, 'drain() | started with timeout in seconds');
 
 	drainingTimeout = setTimeout(() => {
-		logger.info('drain() | timeout reached, closing all rooms and room-server connections...')
+		logger.info('drain() | timeout reached, closing all rooms and room-server connections...');
 
 		roomServers.forEach((roomServer) => roomServer.close());
 
