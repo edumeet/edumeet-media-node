@@ -37,7 +37,7 @@
 		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.4.3",
 		"edumeet-common": "edumeet/edumeet-common#0.6.6",
-		"mediasoup": "^3.19.15",
+		"mediasoup": "^3.19.16",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.3",
 		"systeminformation": "^5.28.7"

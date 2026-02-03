@@ -2471,10 +2471,10 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mediasoup@^3.19.15:
-  version "3.19.15"
-  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.19.15.tgz#41e5944eba717c54c66a620caef933d91872d70f"
-  integrity sha512-/mB9f0keH6f4ql2D/wShz6n8kHeTZE7yXSFmck5edPLQjMRyBHsmeUP8tZ/z66pwfgVB2ahmhf/Iu0SZP6HfJw==
+mediasoup@^3.19.16:
+  version "3.19.16"
+  resolved "https://registry.yarnpkg.com/mediasoup/-/mediasoup-3.19.16.tgz#612b280085b4a7d0de8a836dfb74b2a717ddbbe7"
+  integrity sha512-FGcoF7qg21zWqxE2n0KrqZNjLOrQOgmqdv+xs0+Ju41uB2dXp7f1NKkRczVVt1NtByyQt5Dao6pgHFl7NJ/Rdg==
   dependencies:
     debug "^4.4.3"
     flatbuffers "^25.9.23"
