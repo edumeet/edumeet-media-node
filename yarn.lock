@@ -755,10 +755,10 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.4.tgz#0b92dcc0cc1c81f6f306a381f28e31b1a56536e9"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
-"@tsconfig/node18@^18.2.6":
-  version "18.2.6"
-  resolved "https://registry.yarnpkg.com/@tsconfig/node18/-/node18-18.2.6.tgz#21c894382e89fb5b641303f9ea3bbc04beb7060d"
-  integrity sha512-eAWQzAjPj18tKnDzmWstz4OyWewLUNBm9tdoN9LayzoboRktYx3Enk1ZXPmThj55L7c4VWYq/Bzq0A51znZfhw==
+"@tsconfig/node24@^24.0.4":
+  version "24.0.4"
+  resolved "https://registry.yarnpkg.com/@tsconfig/node24/-/node24-24.0.4.tgz#ae50cc6b3288c1010454f0ec4659b47b520ca1b1"
+  integrity sha512-2A933l5P5oCbv6qSxHs7ckKwobs8BDAe9SJ/Xr2Hy+nDlwmLE1GhFh/g/vXGRZWgxBg9nX/5piDtHR9Dkw/XuA==
 
 "@types/babel__core@^7.1.14":
   version "7.20.5"
@@ -1414,9 +1414,9 @@ diff@^4.0.1:
   resolved "https://registry.yarnpkg.com/diff/-/diff-4.0.2.tgz#60f3aecb89d5fae520c11aa19efc2bb982aade7d"
   integrity sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==
 
-edumeet-common@edumeet/edumeet-common#0.6.6:
-  version "0.6.6"
-  resolved "https://codeload.github.com/edumeet/edumeet-common/tar.gz/dc6d33dc6f2e14096db17f66bb2d7bb8124e1ae1"
+edumeet-common@edumeet/edumeet-common#0.6.7:
+  version "0.6.7"
+  resolved "https://codeload.github.com/edumeet/edumeet-common/tar.gz/33219d2c0ba85167f0f512e9197d0b2c271c6f3d"
   dependencies:
     pino "^9.14.0"
     socket.io-client "^4.8.3"
