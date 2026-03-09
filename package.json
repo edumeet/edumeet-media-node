@@ -19,7 +19,7 @@
 		"prepare": "husky install"
 	},
 	"devDependencies": {
-		"@tsconfig/node18": "^18.2.6",
+		"@tsconfig/node24": "^24.0.4",
 		"@types/debug": "^4.1.7",
 		"@types/jest": "^29.5.0",
 		"@types/minimist": "^1.2.2",
@@ -36,7 +36,7 @@
 	"dependencies": {
 		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.4.3",
-		"edumeet-common": "edumeet/edumeet-common#0.6.6",
+		"edumeet-common": "edumeet/edumeet-common#0.6.7",
 		"mediasoup": "^3.19.17",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.3",
