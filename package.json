@@ -20,7 +20,7 @@
 	},
 	"devDependencies": {
 		"@tsconfig/node24": "^24.0.4",
-		"@types/debug": "^4.1.7",
+		"@types/debug": "^4.1.13",
 		"@types/jest": "^29.5.0",
 		"@types/minimist": "^1.2.2",
 		"@types/node": "^24.10.1",
@@ -37,10 +37,10 @@
 		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.4.3",
 		"edumeet-common": "edumeet/edumeet-common#0.6.7",
-		"mediasoup": "^3.19.17",
+		"mediasoup": "^3.19.18",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.3",
-		"systeminformation": "^5.28.7"
+		"systeminformation": "^5.31.5"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.1.0",
