@@ -134,7 +134,25 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
-	logger.info({ listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 }, 'Starting...');
+	logger.info({
+		listenPort,
+		listenHost,
+		ip,
+		announcedIp,
+		ip6,
+		announcedIp6,
+		availableUpload,
+		availableDownload,
+		rtcMinPort,
+		rtcMaxPort,
+		initialAvailableOutgoingBitrate,
+		maxIncomingBitrate,
+		maxOutgoingBitrate,
+		numberOfWorkers,
+		pollStatsProbability,
+		loadPollingInterval,
+		cpuPercentCascadingLimit,
+	}, 'Starting...');
 
 	interactiveServer(roomServerConnections, roomServers);
 
