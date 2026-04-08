@@ -11,3 +11,8 @@ yarn-error.log
 coverage/
 
 *.tar
+
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+.pnp.*

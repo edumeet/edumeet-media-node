@@ -16,7 +16,7 @@
 		"test:integration": "jest __tests__/integration-tests",
 		"test:coverage": "jest __tests__/unit-tests --coverage --coverageDirectory coverage",
 		"test:watch": "jest --watch",
-		"prepare": "husky install"
+		"prepare": "husky || true"
 	},
 	"devDependencies": {
 		"@tsconfig/node24": "^24.0.4",
@@ -36,7 +36,7 @@
 	"dependencies": {
 		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.4.3",
-		"edumeet-common": "edumeet/edumeet-common#0.6.9",
+		"edumeet-common": "github:edumeet/edumeet-common#0.7.0",
 		"mediasoup": "^3.19.19",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.3",
@@ -48,5 +48,6 @@
 	},
 	"resolutions": {
 		"strip-ansi": "6.0.1"
-	}
+	},
+	"packageManager": "yarn@4.13.0"
 }
