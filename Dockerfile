@@ -13,7 +13,9 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN corepack enable && yarn install --immutable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+RUN yarn install --immutable
 RUN yarn run build
 
 EXPOSE ${LISTEN_PORT}
