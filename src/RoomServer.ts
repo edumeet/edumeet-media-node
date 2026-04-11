@@ -18,6 +18,7 @@ const logger = new Logger('RoomServer');
 export interface RoomServerOptions {
 	mediaService: MediaService;
 	roomServerConnection: RoomServerConnection;
+	imageTag?: string;
 }
 
 export default class RoomServer extends EventEmitter {
@@ -25,6 +26,7 @@ export default class RoomServer extends EventEmitter {
 	public mediaService: MediaService;
 	public routers = new Map<string, Router>();
 	public roomServerConnection: RoomServerConnection;
+	private imageTag?: string;
 
 	private routerMiddleware: Middleware<RoomServerConnectionContext>;
 	private audioObserverMiddleware: Middleware<RoomServerConnectionContext>;
@@ -34,7 +36,8 @@ export default class RoomServer extends EventEmitter {
 
 	constructor({
 		mediaService,
-		roomServerConnection
+		roomServerConnection,
+		imageTag
 	}: RoomServerOptions) {
 		logger.debug('constructor()');
 
@@ -42,6 +45,7 @@ export default class RoomServer extends EventEmitter {
 
 		this.mediaService = mediaService;
 		this.roomServerConnection = roomServerConnection;
+		this.imageTag = imageTag;
 
 		const middlewareOptions = {
 			roomServer: this,
@@ -93,7 +97,9 @@ export default class RoomServer extends EventEmitter {
 		this.roomServerConnection.notify({
 			method: 'mediaNodeReady',
 			data: {
-				workers: this.mediaService.workers.items.length
+				workers: this.mediaService.workers.items.length,
+				version: process.env.npm_package_version,
+				imageTag: this.imageTag,
 			}
 		});
 	}

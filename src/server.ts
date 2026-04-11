@@ -126,6 +126,7 @@ export const cancelDrain = () => {
 		pollStatsProbability = 1.0,
 		loadPollingInterval = 10_000,
 		cpuPercentCascadingLimit = 66,
+		imageTag,
 	} = minimist(process.argv.slice(2));
 	
 	if (!ip || help || usage) {
@@ -243,7 +244,8 @@ export const cancelDrain = () => {
 
 		const roomServer = new RoomServer({
 			mediaService,
-			roomServerConnection
+			roomServerConnection,
+			imageTag
 		});
 
 		roomServers.set(socket.id, roomServer);
