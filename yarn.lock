@@ -1262,7 +1262,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/minimist@npm:^1.2.2":
+"@types/minimist@npm:^1.2.5":
   version: 1.2.5
   resolution: "@types/minimist@npm:1.2.5"
   checksum: 10c0/3f791258d8e99a1d7d0ca2bda1ca6ea5a94e5e7b8fc6cde84dd79b0552da6fb68ade750f0e17718f6587783c24254bbca0357648dd59dc3812c150305cabdc46
@@ -2195,22 +2195,22 @@ __metadata:
     "@tsconfig/node24": "npm:^24.0.4"
     "@types/debug": "npm:^4.1.13"
     "@types/jest": "npm:^30.0.0"
-    "@types/minimist": "npm:^1.2.2"
+    "@types/minimist": "npm:^1.2.5"
     "@types/node": "npm:^24.10.1"
     "@typescript-eslint/eslint-plugin": "npm:^8.57.1"
     "@typescript-eslint/parser": "npm:^8.57.1"
     bufferutil: "npm:^4.1.0"
     debug: "npm:^4.4.3"
     edumeet-common: "github:edumeet/edumeet-common#0.7.0"
-    eslint: "npm:^9.39.2"
+    eslint: "npm:^9.39.4"
     husky: "npm:^8.0.3"
     jest: "npm:^30.3.0"
-    mediasoup: "npm:^3.19.19"
+    mediasoup: "npm:^3.19.21"
     minimist: "npm:^1.2.8"
     socket.io: "npm:^4.8.3"
     systeminformation: "npm:^5.31.5"
-    ts-jest: "npm:^29.4.5"
-    ts-node: "npm:^10.9.1"
+    ts-jest: "npm:^29.4.9"
+    ts-node: "npm:^10.9.2"
     typescript: "npm:^5.9.3"
     utf-8-validate: "npm:^6.0.6"
   dependenciesMeta:
@@ -2355,7 +2355,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.39.2":
+"eslint@npm:^9.39.4":
   version: 9.39.4
   resolution: "eslint@npm:9.39.4"
   dependencies:
@@ -3710,9 +3710,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mediasoup@npm:^3.19.19":
-  version: 3.19.19
-  resolution: "mediasoup@npm:3.19.19"
+"mediasoup@npm:^3.19.21":
+  version: 3.19.21
+  resolution: "mediasoup@npm:3.19.21"
   dependencies:
     debug: "npm:^4.4.3"
     flatbuffers: "npm:^25.9.23"
@@ -3720,7 +3720,7 @@ __metadata:
     node-fetch: "npm:^3.3.2"
     supports-color: "npm:^10.2.2"
     tar: "npm:^7.5.13"
-  checksum: 10c0/ed843ac6db3964151d29b8fae9200c6fbccccbefd5be3c322819b1b089c96cdb0604a692d717f34e46e3c7e86f04881d8cb76e7c236f4d3e11f41e0a6f9c14b9
+  checksum: 10c0/da37e478540002bae8350dda138eb9c54bb4b67f04c45386fd13205401e1bcd054043189664f35b03b466f8a4dc7df2d9b9a9fa022d0377d5602da4be6db4091
   languageName: node
   linkType: hard
 
@@ -4725,7 +4725,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-jest@npm:^29.4.5":
+"ts-jest@npm:^29.4.9":
   version: 29.4.9
   resolution: "ts-jest@npm:29.4.9"
   dependencies:
@@ -4765,7 +4765,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-node@npm:^10.9.1":
+"ts-node@npm:^10.9.2":
   version: 10.9.2
   resolution: "ts-node@npm:10.9.2"
   dependencies:
