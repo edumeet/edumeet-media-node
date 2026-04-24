@@ -132,7 +132,8 @@ export const createConsumerMiddleware = ({
 					throw new Error(`router with id "${routerId}" not found`);
 
 				const routerData = router.appData as unknown as RouterData;
-				const transport = routerData.webRtcTransports.get(transportId);
+				const transport = routerData.webRtcTransports.get(transportId) || 
+					routerData.plainTransports.get(transportId);
 
 				if (!transport)
 					throw new Error(`transport with id "${transportId}" not found`);
@@ -415,7 +416,8 @@ export const createConsumerMiddleware = ({
 					throw new Error(`router with id "${routerId}" not found`);
 
 				const routerData = router.appData as unknown as RouterData;
-				const transport = routerData.webRtcTransports.get(transportId);
+				const transport = routerData.webRtcTransports.get(transportId) || 
+					routerData.plainTransports.get(transportId);
 
 				if (!transport)
 					throw new Error(`transport with id "${transportId}" not found`);
