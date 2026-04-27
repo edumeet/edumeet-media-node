@@ -16,6 +16,16 @@ import LoadManager from './LoadManager';
 
 const logger = new Logger('MediaNode');
 
+process.on('unhandledRejection', (reason) => {
+	logger.error({ err: reason }, 'unhandledRejection — exiting for clean restart');
+	process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+	logger.error({ err: error }, 'uncaughtException — exiting for clean restart');
+	process.exit(1);
+});
+
 const showUsage = () => {
 	logger.debug('Usage:');
 	logger.debug('  --listenPort <port> (optional, default: 3000)');
