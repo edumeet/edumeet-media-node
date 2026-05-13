@@ -34,7 +34,6 @@
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"@observertc/sfu-monitor-js": "1.1.1",
 		"debug": "^4.4.3",
 		"edumeet-common": "github:edumeet/edumeet-common#0.7.0",
 		"mediasoup": "^3.19.22",

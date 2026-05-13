@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
 import * as mediasoup from 'mediasoup';
-import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
+// Parked: @observertc/sfu-monitor-js removed (deprecated upstream + CVE noise).
+// When telemetry is added, wire a maintained library here and uncomment createMonitor() below.
+// import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
 import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
@@ -59,8 +61,6 @@ export interface MediaServiceOptions {
 	rtcMinPort: number;
 	rtcMaxPort: number;
 	numberOfWorkers: number;
-	useObserveRTC: boolean;
-	pollStatsProbability: number;
 	loadPollingInterval: number;
 	cpuPercentCascadingLimit: number;
 }
@@ -85,7 +85,6 @@ export default class MediaService {
 	public maxIncomingBitrate: number;
 	public maxOutgoingBitrate: number;
 	public workers = List<Worker>();
-	public readonly monitor?: MediasoupMonitor;
 	private readonly loadPollingInterval: number;
 	private readonly cpuPercentCascadingLimit: number;
 	private workerResourceCheckInterval?: NodeJS.Timeout;
@@ -98,8 +97,6 @@ export default class MediaService {
 		initialAvailableOutgoingBitrate,
 		maxIncomingBitrate,
 		maxOutgoingBitrate,
-		useObserveRTC,
-		pollStatsProbability,
 		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}: MediaServiceOptions) {
@@ -116,7 +113,6 @@ export default class MediaService {
 		this.initialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate;
 		this.maxIncomingBitrate = maxIncomingBitrate;
 		this.maxOutgoingBitrate = maxOutgoingBitrate;
-		this.monitor = useObserveRTC ? this.createMonitor(pollStatsProbability) : undefined;
 		this.loadPollingInterval = loadPollingInterval;
 		this.cpuPercentCascadingLimit = cpuPercentCascadingLimit;
 	}
@@ -469,41 +465,47 @@ export default class MediaService {
 		return this.getOrCreateRouterPromise(roomId, leastLoadedWorkers[0]);
 	}
 
-	@skipIfClosed
-	private createMonitor(pollStatsProbability: number): MediasoupMonitor {
-		let pollStats: () => boolean;
-
-		if (pollStatsProbability <= 0.0) {
-			pollStats = () => false;
-		} else if (pollStatsProbability < 1.0) {
-			pollStats = () => Math.random() <= pollStatsProbability;
-		} else {
-			pollStats = () => true;
-		}
-
-		const getTransportType: TransportTypeFunction = (transport) => {
-			return transport.constructor.name as MediasoupTransportType;
-		};
-
-		const config: MediasoupMonitorConfig = {};
-
-		/* const config: MediasoupMonitorConfig = {
-			collectingPeriodInMs: 5000,
-			samplingPeriodInMs: 30000,
-			mediasoup,
-			mediasoupCollectors: {
-				getTransportType,
-				pollDirectTransportStats: pollStats,
-				pollPlainRtpTransportStats: pollStats,
-				pollWebRtcTransportStats: pollStats,
-				pollPipeTransportStats: pollStats,
-				pollConsumerStats: pollStats,
-				pollProducerStats: pollStats,
-				pollDataProducerStats: pollStats,
-				pollDataConsumerStats: pollStats,
-			}
-		}; */
-
-		return createMediasoupMonitor(config);
-	}
+	/*
+	 * Parked telemetry wiring — kept as a hint for the eventual SFU-stats pipeline.
+	 * The original @observertc/sfu-monitor-js dep was removed (deprecated upstream + CVEs).
+	 * When you re-introduce telemetry, replace the createMediasoupMonitor call with the
+	 * maintained library's equivalent and re-wire the field + constructor + CLI args
+	 * (useObserveRTC, pollStatsProbability) that used to drive this.
+	 *
+	 * @skipIfClosed
+	 * private createMonitor(pollStatsProbability: number): MediasoupMonitor {
+	 * 	let pollStats: () => boolean;
+	 *
+	 * 	if (pollStatsProbability <= 0.0) {
+	 * 		pollStats = () => false;
+	 * 	} else if (pollStatsProbability < 1.0) {
+	 * 		pollStats = () => Math.random() <= pollStatsProbability;
+	 * 	} else {
+	 * 		pollStats = () => true;
+	 * 	}
+	 *
+	 * 	const getTransportType: TransportTypeFunction = (transport) => {
+	 * 		return transport.constructor.name as MediasoupTransportType;
+	 * 	};
+	 *
+	 * 	const config: MediasoupMonitorConfig = {
+	 * 		collectingPeriodInMs: 5000,
+	 * 		samplingPeriodInMs: 30000,
+	 * 		mediasoup,
+	 * 		mediasoupCollectors: {
+	 * 			getTransportType,
+	 * 			pollDirectTransportStats: pollStats,
+	 * 			pollPlainRtpTransportStats: pollStats,
+	 * 			pollWebRtcTransportStats: pollStats,
+	 * 			pollPipeTransportStats: pollStats,
+	 * 			pollConsumerStats: pollStats,
+	 * 			pollProducerStats: pollStats,
+	 * 			pollDataProducerStats: pollStats,
+	 * 			pollDataConsumerStats: pollStats,
+	 * 		}
+	 * 	};
+	 *
+	 * 	return createMediasoupMonitor(config);
+	 * }
+	 */
 }
