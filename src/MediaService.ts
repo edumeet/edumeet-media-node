@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-vars */
 import * as mediasoup from 'mediasoup';
 // Parked: @observertc/sfu-monitor-js removed (deprecated upstream + CVE noise).
 // When telemetry is added, wire a maintained library here and uncomment createMonitor() below.
