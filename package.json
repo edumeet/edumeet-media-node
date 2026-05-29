@@ -29,7 +29,7 @@
 		"eslint": "^9.39.4",
 		"husky": "^8.0.3",
 		"jest": "^30.3.0",
-		"ts-jest": "^29.4.9",
+		"ts-jest": "^29.4.11",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.9.3"
 	},
@@ -39,7 +39,7 @@
 		"mediasoup": "^3.19.22",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.3",
-		"systeminformation": "^5.31.5"
+		"systeminformation": "^5.31.7"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.1.0",
