@@ -374,7 +374,7 @@ export const createProducerMiddleware = ({
 					if (label === 'observertc-samples') {
 						const dataConsumer = await routerData.directTransport?.consumeData({
 							dataProducerId: dataProducer.id,
-						})
+						});
 
 						if (!dataConsumer) {
 							dataProducer.close();

@@ -21,7 +21,7 @@ setObserverLogger({
 	warn: (...args) => logger.warn(...args),
 	error: (...args) => logger.error(...args),
 	trace: () => void 0,
-})
+});
 
 export type ObservedCallAppData = {
 	roomId: string | undefined;
@@ -34,6 +34,7 @@ export type ObservedCallAppData = {
 export type ObserverServiceOptions = {
 	clientSamplesOutputDirectory?: string;
 	s3Bucket?: string;
+
 	/**
 	 * Custom S3-compatible endpoint URL (e.g. MinIO inside the cluster).
 	 * When set, `forcePathStyle` is automatically enabled so the bucket name
@@ -193,11 +194,11 @@ export class ObserverService extends Observer {
 				const sample = JSON.stringify({
 					...observedCall.appData,
 					numberOfIssues: observedCall.numberOfIssues,
-					clientsUsedTurn: [...observedCall.clientsUsedTurn],
+					clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
 				});
 
 				const callRoomId = observedCall.appData.roomId ?? 'unknown-room';
-			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
+				const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
 
 				await this.uploadObjectToS3(sample, targetKey);
 			} catch (error) {
@@ -218,7 +219,6 @@ export class ObserverService extends Observer {
 			});
 			worker.observer.on('newrouter', onNewRouter);
 		});
-
 
 		this.on('mediasoup-router-added', ({ observedMediasoupRouter }) => {
 			logger.debug('"mediasoup-router-added" | new router added [routerId:%s, sample:%o]', observedMediasoupRouter.router.id, observedMediasoupRouter.sample);
@@ -254,7 +254,7 @@ export class ObserverService extends Observer {
 				const roomId = observedCall.appData.roomId;
 				const targetKey = `${roomId}/${observedCall.callId}/mediasoup-router-${observedMediasoupRouter.router.id}.json`;
 
-				await this.uploadObjectToS3(sample, targetKey)
+				await this.uploadObjectToS3(sample, targetKey);
 			} catch (error) {
 				logger.error('"mediasoup-router-removed" | S3 upload failed [routerId:%s, error:%o]', observedMediasoupRouter.router.id, error);
 			}
@@ -284,6 +284,4 @@ export class ObserverService extends Observer {
 
 		logger.debug('uploadObjectToS3() | uploaded [key:%s]', targetKey);
 	}
-
-
 }

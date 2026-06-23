@@ -2,7 +2,6 @@ import * as mediasoup from 'mediasoup';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
 import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, DirectTransport, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
-import { dir } from 'console';
 
 const logger = new Logger('MediaService');
 

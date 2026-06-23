@@ -138,7 +138,7 @@ export const cancelDrain = () => {
 	} = minimist(process.argv.slice(2));
 
 	const s3Parts = typeof s3 === 'string' ? s3.split('//') : [];
-	const s3Bucket   = s3Parts[0] || undefined;
+	const s3Bucket = s3Parts[0] || undefined;
 	const s3Endpoint = s3Parts.length > 1 ? s3Parts.slice(1).join('//') : undefined;
 
 	if (!ip || help || usage) {
