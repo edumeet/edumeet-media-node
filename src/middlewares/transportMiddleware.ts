@@ -133,7 +133,6 @@ export const createTransportMiddleware = ({
 					webRtcServer: routerData.webRtcServer,
 					initialAvailableOutgoingBitrate: mediaService.initialAvailableOutgoingBitrate,
 					enableSctp: Boolean(sctpCapabilities),
-					numSctpStreams: (sctpCapabilities ?? {}).numStreams,
 					enableTcp: true,
 					enableUdp: !forceTcp,
 					preferUdp: !forceTcp,
@@ -231,7 +230,7 @@ export const createTransportMiddleware = ({
 
 				if (!router)
 					throw new Error(`router with id "${routerId}" not found`);
-				
+
 				const routerData = router.appData as unknown as RouterData;
 				const transport = routerData.webRtcTransports.get(transportId);
 

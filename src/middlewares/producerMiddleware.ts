@@ -7,6 +7,7 @@ const logger = new Logger('ProducerMiddleware');
 
 export const createProducerMiddleware = ({
 	roomServer,
+	observerService,
 }: MiddlewareOptions): Middleware<RoomServerConnectionContext> => {
 	logger.debug('createProducerMiddleware()');
 
@@ -368,6 +369,20 @@ export const createProducerMiddleware = ({
 							});
 						}
 					});
+
+					// Hand observer-monitoring data producers to the ObserverService.
+					if (label === 'observertc-samples') {
+						const dataConsumer = await routerData.directTransport?.consumeData({
+							dataProducerId: dataProducer.id,
+						})
+
+						if (!dataConsumer) {
+							dataProducer.close();
+							throw new Error('Failed to consume data producer for ObserverService');
+						}
+
+						observerService.addDataConsumer(dataConsumer);
+					}
 
 					response.id = dataProducer.id;
 					context.handled = true;

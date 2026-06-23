@@ -9,6 +9,7 @@ import { interactiveServer, interactiveServerAddMediaService } from './interacti
 import MediaService from './MediaService';
 import RoomServer from './RoomServer';
 import { RoomServerConnection } from './RoomServerConnection';
+import { ObserverService } from './ObserverService';
 import { Logger } from 'edumeet-common';
 import { createHttpEndpoints } from './httpEndpoints';
 import { IOServerConnection } from './common/IOServerConnection';
@@ -52,14 +53,23 @@ const showUsage = () => {
 	logger.debug('    The upper bound port for mediasoup transport.\n\n');
 	logger.debug('  --numberOfWorkers <num> (optional, default: number of host cores)');
 	logger.debug('    The number of mediasoup workers to create.\n\n');
-	logger.debug('  --useObserveRTC <boolean> (optional, default: true)');
-	logger.debug('    Flag indicate to use ObserveRTC plugin for monitoring the SFU.\n\n');
-	logger.debug('  --pollStatsProbability <[0..1]> (optional, default: 1.0)');
-	logger.debug('    The probability of polling stats by the monitor from transports, producers, consumers, dataProducers or dataConsumers.\n\n');
 	logger.debug('  --loadPollingInterval <ms> (optional, default: 10000)');
 	logger.debug('    The interval in ms to poll load usage.\n\n');
 	logger.debug('  --cpuPercentCascadingLimit <percent> (optional, default: 66)');
 	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
+	logger.debug('  --clientSamplesOutputDirectory <path> (optional, default: none)');
+	logger.debug('    Local directory to write observertc JSONL sample files to.\n\n');
+	logger.debug('  --s3 <bucket[//endpoint]> (optional, default: none)');
+	logger.debug('    Enable observertc JSONL uploads to S3 or any S3-compatible store.');
+	logger.debug('    bucket   — target bucket name (required)');
+	logger.debug('    endpoint — custom endpoint URL, separated by // (optional).');
+	logger.debug('               Omit for AWS S3; set for MinIO or other compatible stores.');
+	logger.debug('               Path-style URLs are enabled automatically when an endpoint is given.');
+	logger.debug('    Credentials are resolved via the standard AWS SDK credential chain');
+	logger.debug('    (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars, IAM role, etc.).');
+	logger.debug('    Examples:');
+	logger.debug('      --s3 my-bucket');
+	logger.debug('      --s3 "my-bucket//http://minio.minio-ns.svc.cluster.local:9000"\n\n');
 };
 
 const roomServerConnections = new Map<string, RoomServerConnection>();
@@ -121,21 +131,31 @@ export const cancelDrain = () => {
 		rtcMinPort = 40000,
 		rtcMaxPort = 40249,
 		numberOfWorkers = os.cpus().length,
-		useObserveRTC = true,
-		pollStatsProbability = 1.0,
 		loadPollingInterval = 10_000,
 		cpuPercentCascadingLimit = 66,
+		clientSamplesOutputDirectory,
+		s3,
 	} = minimist(process.argv.slice(2));
-	
+
+	const s3Parts = typeof s3 === 'string' ? s3.split('//') : [];
+	const s3Bucket   = s3Parts[0] || undefined;
+	const s3Endpoint = s3Parts.length > 1 ? s3Parts.slice(1).join('//') : undefined;
+
 	if (!ip || help || usage) {
 		showUsage();
-	
+
 		return process.exit(1);
 	}
 
 	logger.debug('Starting...', { listenPort, listenHost, ip, announcedIp, ip6, announcedIp6 });
 
 	interactiveServer(roomServerConnections, roomServers);
+
+	const observerService = new ObserverService({
+		clientSamplesOutputDirectory,
+		s3Bucket,
+		s3Endpoint,
+	});
 
 	const mediaService = await MediaService.create({
 		ip,
@@ -148,8 +168,6 @@ export const cancelDrain = () => {
 		rtcMinPort,
 		rtcMaxPort,
 		numberOfWorkers,
-		useObserveRTC,
-		pollStatsProbability,
 		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}).catch((error) => {
@@ -233,6 +251,7 @@ export const cancelDrain = () => {
 
 		const roomServer = new RoomServer({
 			mediaService,
+			observerService,
 			roomServerConnection
 		});
 
@@ -246,6 +265,7 @@ export const cancelDrain = () => {
 		roomServerConnections.forEach((roomServerConnection) =>
 			roomServerConnection.close());
 		roomServers.forEach((roomServer) => roomServer.close());
+		observerService.close();
 		mediaService.close();
 		httpsServer.close();
 
