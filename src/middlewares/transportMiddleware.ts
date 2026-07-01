@@ -120,7 +120,7 @@ export const createTransportMiddleware = ({
 				const {
 					routerId,
 					forceTcp,
-					sctpCapabilities,
+					enableSctp,
 				} = message.data;
 
 				const router = roomServer.routers.get(routerId);
@@ -132,8 +132,7 @@ export const createTransportMiddleware = ({
 				const transport = await router.createWebRtcTransport({
 					webRtcServer: routerData.webRtcServer,
 					initialAvailableOutgoingBitrate: mediaService.initialAvailableOutgoingBitrate,
-					enableSctp: Boolean(sctpCapabilities),
-					numSctpStreams: (sctpCapabilities ?? {}).numStreams,
+					enableSctp: Boolean(enableSctp),
 					enableTcp: true,
 					enableUdp: !forceTcp,
 					preferUdp: !forceTcp,
