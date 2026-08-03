@@ -10,7 +10,7 @@ jest.mock('../../src/ObserverService');
 test('Constructor - should call notify on roomServerConnection', () => {
 	const mockMediaService = new MediaServiceMock() as unknown as MediaService;
 	const mockConn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
-	const mockObserverService = new ObserverService() as unknown as ObserverService;
+	const mockObserverService = new ObserverService({}) as unknown as ObserverService;
 	const spyNotify = jest.spyOn(mockConn, 'notify');
 	const options: RoomServerOptions = {
 		mediaService: mockMediaService,

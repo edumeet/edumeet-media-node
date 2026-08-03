@@ -1,8 +1,5 @@
 import EventEmitter from 'events';
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { Producer } from 'mediasoup/node/lib/Producer';
-import { Router } from 'mediasoup/node/lib/Router';
-import { Transport } from 'mediasoup/node/lib/Transport';
+import { Consumer, Producer, Router, Transport } from 'mediasoup/types';
 import { MiddlewareOptions } from '../../../../src/common/types';
 import MediaService from '../../../../src/MediaService';
 import { createRouterMiddleware } from '../../../../src/middlewares/routerMiddleware';

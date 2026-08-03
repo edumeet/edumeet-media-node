@@ -1,6 +1,4 @@
-import { Producer } from 'mediasoup/node/lib/Producer';
-import { Router } from 'mediasoup/node/lib/Router';
-import { Transport } from 'mediasoup/node/lib/Transport';
+import { Producer, Router, Transport } from 'mediasoup/types';
 import { MiddlewareOptions } from '../../../../src/common/types';
 import { createTransportMiddleware } from '../../../../src/middlewares/transportMiddleware';
 import RoomServer from '../../../../src/RoomServer';

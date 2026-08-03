@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { Producer } from 'mediasoup/node/lib/Producer';
+import { Consumer, Producer } from 'mediasoup/types';
 
 export default class TransportMock {
 	observer;

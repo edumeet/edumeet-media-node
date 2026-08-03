@@ -1,7 +1,5 @@
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { Producer } from 'mediasoup/node/lib/Producer';
-import { Transport } from 'mediasoup/node/lib/Transport';
 import { EventEmitter } from 'stream';
+import { Consumer, Producer, Transport } from 'mediasoup/types';
 
 export default class RouterMock {
 	observer;

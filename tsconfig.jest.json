@@ -1,0 +1,12 @@
+{
+	"extends": "@tsconfig/node22/tsconfig.json",
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+
+		// ts-jest downgrades module resolution unless isolatedModules is on, and
+		// without nodenext resolution it cannot follow the "exports" map that
+		// mediasoup uses for its `mediasoup/types` entry point.
+		"isolatedModules": true
+	}
+}

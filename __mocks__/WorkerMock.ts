@@ -1,8 +1,7 @@
-import { Consumer } from 'mediasoup/node/lib/Consumer';
-import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
-import { Router, RouterOptions } from 'mediasoup/node/lib/Router';
+import { EventEmitter } from 'events';
+import { Consumer, Router, RouterOptions } from 'mediasoup/types';
 
-export default class WorkerMock extends EnhancedEventEmitter {
+export default class WorkerMock extends EventEmitter {
 	observer;
 	appData = {
 		routersByRoomId: new Map<string, Promise<Router>>(),
@@ -11,7 +10,7 @@ export default class WorkerMock extends EnhancedEventEmitter {
 	pid;
 	
 	constructor(
-		workerObserver: EnhancedEventEmitter,
+		workerObserver: EventEmitter,
 		pid: number,
 		consumersSize = 0
 	) {
@@ -47,6 +46,8 @@ export default class WorkerMock extends EnhancedEventEmitter {
 				mediaCodecs: mediaCodecs,
 				id: appData.roomId,
 				close: jest.fn(), 
+				// MediaService stashes the result on router.appData.directTransport.
+				createDirectTransport: jest.fn().mockResolvedValue({ id: 'direct-transport', close: jest.fn() }),
 				rtpCapabilities: {
 					headerExtensions: []
 				},

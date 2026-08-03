@@ -1,7 +1,5 @@
 import EventEmitter from 'events';
-import { PipeTransport } from 'mediasoup/node/lib/PipeTransport';
-import { Router } from 'mediasoup/node/lib/Router';
-import { WebRtcTransport } from 'mediasoup/node/lib/WebRtcTransport';
+import { PipeTransport, Router, WebRtcTransport } from 'mediasoup/types';
 import { MiddlewareOptions } from '../../../../src/common/types';
 import MediaService from '../../../../src/MediaService';
 import { createTransportMiddleware } from '../../../../src/middlewares/transportMiddleware';

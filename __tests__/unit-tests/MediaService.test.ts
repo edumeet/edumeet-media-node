@@ -1,16 +1,12 @@
 // Mocks
 import * as mediasoup from 'mediasoup';
 jest.mock('mediasoup');
-import { Worker } from 'mediasoup/node/lib/Worker';
-jest.mock('mediasoup/node/lib/Worker');
 
 import 'jest';
 import MediaService, { MediaServiceOptions, WorkerData } from '../../src/MediaService';
 import WorkerMock from '../../__mocks__/WorkerMock';
 import EventEmitter from 'events';
-import { EnhancedEventEmitter } from 'mediasoup/node/lib/EnhancedEventEmitter';
-import { Transport } from 'mediasoup/node/lib/Transport';
-import { Consumer } from 'mediasoup/node/lib/Consumer';
+import { Consumer, Transport, Worker } from 'mediasoup/types';
 
 const emptyMediaServiceOptions = {} as unknown as MediaServiceOptions;
 const optionsWithWorkers = {
@@ -32,7 +28,7 @@ test('Close() - Should close', () => {
 });
 
 test('getRouter() - should return router', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 1) as unknown as Worker;
 
@@ -44,7 +40,7 @@ test('getRouter() - should return router', async () => {
 });
 
 test('getRouter() - should close router', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 1) as unknown as Worker;
 
@@ -62,7 +58,7 @@ test('getRouter() - should close router', async () => {
 });
 
 test('getRouter() - should use worker with least load on first participant', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 10) as unknown as Worker;
 	const mockWorker2 = new WorkerMock(spyObserver, 2, 20) as unknown as Worker;
@@ -77,7 +73,7 @@ test('getRouter() - should use worker with least load on first participant', asy
 });
 
 test('getRouter() - should not choose less load worker when router exists', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 20) as unknown as Worker;
 	const mockWorker2 = new WorkerMock(spyObserver, 2, 30) as unknown as Worker;
@@ -97,7 +93,7 @@ test('getRouter() - should not choose less load worker when router exists', asyn
 });
 
 test('getRouter() - should use oversaturated worker if it is the least loaded in general', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 500) as unknown as Worker;
 	const mockWorker2 = new WorkerMock(spyObserver, 2, 504) as unknown as Worker;
@@ -113,7 +109,7 @@ test('getRouter() - should use oversaturated worker if it is the least loaded in
 });
 
 test('getMetrics() - should return consumers and routers', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const sut = new MediaService(emptyMediaServiceOptions);
 	const mockWorker1 = new WorkerMock(spyObserver, 1, 200) as unknown as Worker;
 
@@ -132,7 +128,7 @@ test('getMetrics() - should return consumers and routers', async () => {
 });
 
 test('getMetrics() - should give correct consumer count on add/remove consumer', async () => {
-	const spyObserver = new EventEmitter() as unknown as EnhancedEventEmitter;
+	const spyObserver = new EventEmitter();
 	const mockWorker = new WorkerMock(spyObserver, 1) as unknown as Worker;
 
 	jest.spyOn(mediasoup, 'createWorker').mockImplementation(async () => {
