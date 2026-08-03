@@ -14,6 +14,7 @@ import { Logger } from 'edumeet-common';
 import { createHttpEndpoints } from './httpEndpoints';
 import { IOServerConnection } from './common/IOServerConnection';
 import LoadManager from './LoadManager';
+import { createUploader } from './uploader/Uploader';
 
 const logger = new Logger('MediaNode');
 
@@ -57,19 +58,11 @@ const showUsage = () => {
 	logger.debug('    The interval in ms to poll load usage.\n\n');
 	logger.debug('  --cpuPercentCascadingLimit <percent> (optional, default: 66)');
 	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
-	logger.debug('  --clientSamplesOutputDirectory <path> (optional, default: none)');
+	logger.debug('  --samplesStorePath <path> (optional, default: none)');
 	logger.debug('    Local directory to write observertc JSONL sample files to.\n\n');
-	logger.debug('  --s3 <bucket[//endpoint]> (optional, default: none)');
-	logger.debug('    Enable observertc JSONL uploads to S3 or any S3-compatible store.');
-	logger.debug('    bucket   — target bucket name (required)');
-	logger.debug('    endpoint — custom endpoint URL, separated by // (optional).');
-	logger.debug('               Omit for AWS S3; set for MinIO or other compatible stores.');
-	logger.debug('               Path-style URLs are enabled automatically when an endpoint is given.');
-	logger.debug('    Credentials are resolved via the standard AWS SDK credential chain');
-	logger.debug('    (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars, IAM role, etc.).');
-	logger.debug('    Examples:');
-	logger.debug('      --s3 my-bucket');
-	logger.debug('      --s3 "my-bucket//http://minio.minio-ns.svc.cluster.local:9000"\n\n');
+	logger.debug('  --samplesUploadUri <uri> (optional, default: none)');
+	logger.debug('    Upload observertc samples to S3, e.g. "s3://bucket/prefix?region=eu-north-1"');
+	logger.debug('    or "s3://bucket?endpoint=<minio-url>&credentialsEnv=MINIO".');
 };
 
 const roomServerConnections = new Map<string, RoomServerConnection>();
@@ -133,13 +126,9 @@ export const cancelDrain = () => {
 		numberOfWorkers = os.cpus().length,
 		loadPollingInterval = 10_000,
 		cpuPercentCascadingLimit = 66,
-		clientSamplesOutputDirectory,
-		s3,
+		samplesStorePath,
+		samplesUploadUri,
 	} = minimist(process.argv.slice(2));
-
-	const s3Parts = typeof s3 === 'string' ? s3.split('//') : [];
-	const s3Bucket = s3Parts[0] || undefined;
-	const s3Endpoint = s3Parts.length > 1 ? s3Parts.slice(1).join('//') : undefined;
 
 	if (!ip || help || usage) {
 		showUsage();
@@ -152,9 +141,8 @@ export const cancelDrain = () => {
 	interactiveServer(roomServerConnections, roomServers);
 
 	const observerService = new ObserverService({
-		clientSamplesOutputDirectory,
-		s3Bucket,
-		s3Endpoint,
+		samplesStorePath,
+		uploader: createUploader(samplesUploadUri),
 	});
 
 	const mediaService = await MediaService.create({

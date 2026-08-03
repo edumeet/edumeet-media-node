@@ -1,6 +1,5 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Logger } from 'edumeet-common';
-import { readFile } from 'fs/promises';
+import { unlink } from 'fs/promises';
 import { DataConsumer } from 'mediasoup/types';
 import * as mediasoup from 'mediasoup';
 import {
@@ -12,6 +11,7 @@ import {
 	ObserverEvents,
 	setObserverLogger,
 } from '@observertc/observer-js';
+import { Uploader } from './uploader/Uploader';
 
 const logger = new Logger('ObserverService');
 
@@ -32,70 +32,49 @@ export type ObservedCallAppData = {
 }
 
 export type ObserverServiceOptions = {
-	clientSamplesOutputDirectory?: string;
-	s3Bucket?: string;
 
 	/**
-	 * Custom S3-compatible endpoint URL (e.g. MinIO inside the cluster).
-	 * When set, `forcePathStyle` is automatically enabled so the bucket name
-	 * is part of the URL path rather than the hostname — required by MinIO.
-	 * Leave undefined to target AWS S3.
+	 * Directory the per-client JSONL files are written to.
 	 *
-	 * Example: "http://minio.minio-ns.svc.cluster.local:9000"
+	 * Required for uploading: the observer only creates a file sink when it has
+	 * somewhere to write, and the uploader sends that file. Without it there is
+	 * nothing worth uploading, so `uploader` is ignored.
 	 */
-	s3Endpoint?: string;
+	samplesStorePath?: string;
+
+	uploader?: Uploader;
 }
 
 export type ObserverServiceEvents = Omit<ObserverEvents, 'observer-closed' | 'sample-rejected'>;
 
-/**
- * Process-level singleton (created once in server.ts).
- *
- * Receives ClientSample payloads from clients via an SCTP data channel
- * (label: 'observertc-samples'), feeds them into an @observertc/observer-js
- * Observer instance.
- *
- * If both `clientSamplesOutputDirectory` and `s3Bucket` are set, each JSONL
- * file written locally is uploaded to S3 when its sink closes (i.e. when the
- * observed client leaves). AWS credentials are resolved via the standard SDK
- * credential chain (env vars, IAM instance profile, ~/.aws/credentials, etc.).
- */
-export class ObserverService extends Observer {
-	private readonly s3Client?: S3Client;
-	private readonly s3Bucket?: string;
+/** The single argument the observer hands a listener for event `K`. */
+type EventScope<K extends keyof ObserverEvents> = ObserverEvents[K][0];
 
-	public constructor(public options: ObserverServiceOptions) {
-		super({
-			createClientSink: options.clientSamplesOutputDirectory
-				? createJsonlFileSinkFactory({ directory: options.clientSamplesOutputDirectory })
+export class ObserverService extends Observer {
+	private static buildObserverConfig(options: ObserverServiceOptions): ConstructorParameters<typeof Observer>[0] {
+		if (options.uploader && !options.samplesStorePath) {
+			logger.warn('buildObserverConfig() ignoring --samplesUploadUri, nothing to upload without --samplesStorePath');
+
+			options.uploader = undefined;
+		}
+
+		return {
+			createClientSink: options.samplesStorePath
+				? createJsonlFileSinkFactory({ directory: options.samplesStorePath })
 				: undefined,
 			closeCallIfEmptyForMs: 5 * 60 * 1000, // 5 minutes
 			closeClientIfIdleForMs: 1 * 60 * 1000, // 1 minute,
 			createTrackResolver: createDefaultMediasoupRemoteTrackResolverFactory(),
-		});
+		};
+	}
+
+	public constructor(public options: ObserverServiceOptions) {
+		super(ObserverService.buildObserverConfig(options));
 
 		logger.debug('constructor()');
 
-		if (options.s3Bucket) {
-			this.s3Bucket = options.s3Bucket;
-			this.s3Client = new S3Client({
-				// MinIO ignores the region but the AWS SDK requires one to be set.
-				// Fall back to us-east-1 when using a custom endpoint.
-				region: process.env.AWS_DEFAULT_REGION ?? (options.s3Endpoint ? 'us-east-1' : undefined),
-				...(options.s3Endpoint && {
-					endpoint: options.s3Endpoint,
-					forcePathStyle: true, // required for MinIO
-				}),
-			});
-			logger.debug('constructor() | S3 upload enabled [bucket:%s, endpoint:%s]',
-				this.s3Bucket,
-				options.s3Endpoint ?? 'AWS'
-			);
-		}
-
 		this.setupObserverEvents();
 		this.config.createCallAppData = this.createObservedCallAppData.bind(this);
-
 	}
 
 	/**
@@ -103,7 +82,7 @@ export class ObserverService extends Observer {
 	 * Called from producerMiddleware when label === 'observertc-samples'.
 	 */
 	public addDataConsumer(dataConsumer: DataConsumer): void {
-		logger.debug('add() [id:%s]', dataConsumer.id);
+		logger.debug('addDataConsumer() [id: %s]', dataConsumer.id);
 
 		const onMessage = (payload: Buffer | string) => {
 			try {
@@ -116,7 +95,7 @@ export class ObserverService extends Observer {
 				this.accept(sample);
 			} catch (error) {
 				logger.error(
-					'addDataConsumer() | error accepting sample [dataConsumerId:%s, error:%o]',
+					'addDataConsumer() error accepting sample [dataConsumerId: %s, error: %o]',
 					dataConsumer.id,
 					error
 				);
@@ -137,151 +116,201 @@ export class ObserverService extends Observer {
 		};
 	}
 
+	/**
+	 * Wire up the subscriptions. Each handler is an arrow class property, so it
+	 * stays bound when passed by reference here; those run immediately after
+	 * `super()`, before this method is called.
+	 *
+	 * Only the first group is unconditional. The rest exists solely to produce
+	 * artifacts for the uploader, and to keep the call appData those artifacts
+	 * are built from — `ObservedCallAppData` is read nowhere else. With nowhere to
+	 * send anything, none of that work is worth doing, so we do not subscribe at
+	 * all rather than subscribe and bail out per event.
+	 */
 	private setupObserverEvents(): void {
-		this.on('client-sink-created', ({ sink, observedCall, observedClient }) => {
-			const sourcePath = sink instanceof JsonlFileSink ? sink.path : undefined;
+		// Diagnostics and observer wiring, worth having either way.
+		this.on('peer-connection-added', this.handlePeerConnectionAdded);
+		this.on('mediasoup-router-added', this.handleMediasoupRouterAdded);
+		this.on('mediasoup-router-matched-with-peer-connection', this.handleMediasoupRouterMatched);
 
-			if (!sourcePath || !this.s3Client) return;
+		// Not one of our own events: mediasoup's global observer is how we learn
+		// about routers, so they can be attached to the calls that use them.
+		mediasoup.observer.on('newworker', this.handleNewMediasoupWorker);
 
-			sink.once('close', async () => {
-				const sampleAttachments = observedClient.attachments as Record<string, unknown> | undefined;
-				const roomId = observedCall.appData?.roomId ?? (sampleAttachments?.['roomId'] as string | undefined) ?? 'unknown-room';
-				const targetKey = `${roomId}/${observedCall.callId}/${observedClient.clientId}.jsonl`;
+		if (this.options.uploader) {
+			this.on('client-sink-created', this.handleClientSinkCreated);
+			this.on('client-added', this.handleClientAdded);
+			this.on('client-updated', this.handleClientUpdated);
+			this.on('call-closed', this.handleCallClosed);
+			this.on('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
+		}
+	}
 
-				try {
-					await this.uploadToS3(sourcePath, targetKey).catch((error) =>
-						logger.error('"sink-close" | S3 upload failed [key:%s, error:%o]', targetKey, error)
-					);
-				} catch (error) {
-					logger.error('"sink-close" | S3 upload failed [key:%s, error:%o]', targetKey, error);
+	/**
+	 * Upload the client's JSONL file once its sink closes, i.e. once the observed
+	 * client has left and nothing more will be written.
+	 */
+	private handleClientSinkCreated = ({ sink, observedCall, observedClient }: EventScope<'client-sink-created'>): void => {
+		const sourcePath = sink instanceof JsonlFileSink ? sink.path : undefined;
+		const { uploader } = this.options;
+
+		if (!sourcePath || !uploader) return;
+
+		sink.once('close', async () => {
+			const call = observedCall as ObservedCall<ObservedCallAppData>;
+			const sampleAttachments = observedClient.attachments as Record<string, unknown> | undefined;
+			const roomId = call.appData?.roomId ?? (sampleAttachments?.['roomId'] as string | undefined) ?? 'unknown-room';
+			const targetKey = `${roomId}/${call.callId}/${observedClient.clientId}.jsonl`;
+
+			try {
+				await uploader.upload({
+					key: targetKey,
+					sourcePath,
+					contentType: 'application/x-ndjson',
+				});
+
+				if (uploader.deleteAfterUpload) {
+					await this.deleteUploadedFile(sourcePath, targetKey);
 				}
-			});
-		});
-		this.on('client-updated', ({ observedClient }) => {
-			const observedCall = observedClient.call as ObservedCall<ObservedCallAppData>;
-
-			if (!observedCall.appData?.roomId && observedClient.attachments?.roomId) {
-
-				observedCall.appData.roomId = observedClient.attachments.roomId as string;
-
-				logger.debug('client-updated() | set call appData roomId [callId:%s, roomId:%s]', observedClient.call.callId, observedCall.appData.roomId);
-			}
-
-			if (observedCall.appData?.clients && observedClient.attachments?.displayName) {
-				observedCall.appData.clients[observedClient.clientId].displayName = observedClient.attachments.displayName as string;
-			}
-
-		});
-		this.on('peer-connection-added', ({ observedClient, observedCall, observedPeerConnection }) => {
-			logger.debug('"peer-connection-added" | new peer connection [callId:%s, clientId:%s, peerConnectionId: %s]', observedCall.callId, observedClient.clientId, observedPeerConnection.peerConnectionId);
-		});
-
-		this.on('client-added', (scope) => {
-			const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
-
-			observedCall.appData.clients[scope.observedClient.clientId] = {
-
-			};
-		});
-		this.on('call-closed', async (scope) => {
-			const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
-
-			logger.debug('"call-closed" | call closed [callId:%s, appData:%o]', observedCall.callId, observedCall.appData);
-
-			if (!observedCall.appData) return;
-
-			try {
-				const sample = JSON.stringify({
-					...observedCall.appData,
-					numberOfIssues: observedCall.numberOfIssues,
-					clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
-				});
-
-				const callRoomId = observedCall.appData.roomId ?? 'unknown-room';
-				const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
-
-				await this.uploadObjectToS3(sample, targetKey);
 			} catch (error) {
-				logger.error('"call-closed" | S3 upload failed [callId:%s, error:%o]', observedCall.callId, error);
+				logger.error('handleClientSinkCreated() upload failed [key: %s, error: %o]', targetKey, error);
 			}
 		});
+	};
 
-		mediasoup.observer.on('newworker', (worker) => {
-			const onNewRouter = (router: mediasoup.types.Router) => {
-				this.createObservedMediasoupRouter({
-					router,
-					matchPeerConnectionByWebRtcTransportId: true,
-				});
-			};
+	private async deleteUploadedFile(path: string, key: string): Promise<void> {
+		try {
+			await unlink(path);
+		} catch (error) {
+			logger.warn('deleteUploadedFile() delete failed [key: %s, path: %s, error: %o]', key, path, error);
+		}
+	}
 
-			worker.observer.once('close', () => {
-				worker.observer.off('newrouter', onNewRouter);
+	/** Seed the call's appData entry for a client that just joined. */
+	private handleClientAdded = (scope: EventScope<'client-added'>): void => {
+		const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
+
+		observedCall.appData.clients[scope.observedClient.clientId] = {
+
+		};
+	};
+
+	/** Lift roomId and displayName out of client sample attachments onto the call. */
+	private handleClientUpdated = ({ observedClient }: EventScope<'client-updated'>): void => {
+		const observedCall = observedClient.call as ObservedCall<ObservedCallAppData>;
+
+		if (!observedCall.appData?.roomId && observedClient.attachments?.roomId) {
+
+			observedCall.appData.roomId = observedClient.attachments.roomId as string;
+
+			logger.debug('handleClientUpdated() set roomId [callId: %s, roomId: %s]', observedClient.call.callId, observedCall.appData.roomId);
+		}
+
+		if (observedCall.appData?.clients && observedClient.attachments?.displayName) {
+			observedCall.appData.clients[observedClient.clientId].displayName = observedClient.attachments.displayName as string;
+		}
+	};
+
+	private handlePeerConnectionAdded = ({ observedClient, observedCall, observedPeerConnection }: EventScope<'peer-connection-added'>): void => {
+		logger.debug('handlePeerConnectionAdded() [callId: %s, clientId: %s, peerConnectionId: %s]', observedCall.callId, observedClient.clientId, observedPeerConnection.peerConnectionId);
+	};
+
+	/** Upload the call summary once the call is over. */
+	private handleCallClosed = async (scope: EventScope<'call-closed'>): Promise<void> => {
+		const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
+
+		logger.debug('handleCallClosed() [callId: %s, appData: %o]', observedCall.callId, observedCall.appData);
+
+		const { uploader } = this.options;
+
+		// Nothing reads the summary when there is nowhere to send it, so bail out
+		// before paying to serialise it.
+		if (!uploader || !observedCall.appData) return;
+
+		try {
+			const sample = JSON.stringify({
+				...observedCall.appData,
+				numberOfIssues: observedCall.numberOfIssues,
+				clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
 			});
-			worker.observer.on('newrouter', onNewRouter);
-		});
 
-		this.on('mediasoup-router-added', ({ observedMediasoupRouter }) => {
-			logger.debug('"mediasoup-router-added" | new router added [routerId:%s, sample:%o]', observedMediasoupRouter.router.id, observedMediasoupRouter.sample);
-		});
-		this.on('mediasoup-router-matched-with-peer-connection', ({ observedClient, observedCall, observedMediasoupRouter }) => {
-			observedMediasoupRouter.appData = {
-				observedCall,
-			};
+			const callRoomId = observedCall.appData.roomId ?? 'unknown-room';
+			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
 
-			logger.debug('"mediasoup-router-matched-with-peer-connection" | router matched with peer connection [routerId:%s, callId:%s, clientId:%s]', observedMediasoupRouter.router.id, observedCall.callId, observedClient.clientId);
-
-			observedClient.injectAttachment({
-				routerId: observedMediasoupRouter.router.id,
+			await uploader.upload({
+				key: targetKey,
+				body: sample,
+				contentType: 'application/json',
 			});
+		} catch (error) {
+			logger.error('handleCallClosed() upload failed [callId: %s, error: %o]', observedCall.callId, error);
+		}
+	};
 
-			const callAppData = (observedCall as ObservedCall<ObservedCallAppData>).appData;
+	/** Observe every router each mediasoup worker creates. */
+	private handleNewMediasoupWorker = (worker: mediasoup.types.Worker): void => {
+		const onNewRouter = (router: mediasoup.types.Router) => {
+			this.createObservedMediasoupRouter({
+				router,
+				matchPeerConnectionByWebRtcTransportId: true,
+			});
+		};
 
-			if (callAppData?.routerIds && !callAppData.routerIds.includes(observedMediasoupRouter.router.id)) {
-				callAppData.routerIds.push(observedMediasoupRouter.router.id);
-			}
+		worker.observer.once('close', () => {
+			worker.observer.off('newrouter', onNewRouter);
 		});
-		this.on('mediasoup-router-removed', async ({ observedMediasoupRouter }) => {
-			logger.debug('"mediasoup-router-removed" | router removed [routerId:%s, sample:%o, appData:%o]', observedMediasoupRouter.router.id, observedMediasoupRouter.sample, observedMediasoupRouter.appData);
+		worker.observer.on('newrouter', onNewRouter);
+	};
 
-			if (!observedMediasoupRouter.appData?.observedCall) return;
+	private handleMediasoupRouterAdded = ({ observedMediasoupRouter }: EventScope<'mediasoup-router-added'>): void => {
+		logger.debug('handleMediasoupRouterAdded() [routerId: %s, sample: %o]', observedMediasoupRouter.router.id, observedMediasoupRouter.sample);
+	};
 
-			const observedCall = observedMediasoupRouter.appData.observedCall as ObservedCall<ObservedCallAppData>;
+	/** Remember which call a router belongs to, and tag the client with its id. */
+	private handleMediasoupRouterMatched = ({ observedClient, observedCall, observedMediasoupRouter }: EventScope<'mediasoup-router-matched-with-peer-connection'>): void => {
+		observedMediasoupRouter.appData = {
+			observedCall,
+		};
 
-			if (!observedCall.appData.roomId) return;
+		logger.debug('handleMediasoupRouterMatched() [routerId: %s, callId: %s, clientId: %s]', observedMediasoupRouter.router.id, observedCall.callId, observedClient.clientId);
 
-			try {
-				const sample = JSON.stringify(observedMediasoupRouter.sample);
-				const roomId = observedCall.appData.roomId;
-				const targetKey = `${roomId}/${observedCall.callId}/mediasoup-router-${observedMediasoupRouter.router.id}.json`;
-
-				await this.uploadObjectToS3(sample, targetKey);
-			} catch (error) {
-				logger.error('"mediasoup-router-removed" | S3 upload failed [routerId:%s, error:%o]', observedMediasoupRouter.router.id, error);
-			}
+		observedClient.injectAttachment({
+			routerId: observedMediasoupRouter.router.id,
 		});
 
-	}
+		const callAppData = (observedCall as ObservedCall<ObservedCallAppData>).appData;
 
-	private async uploadToS3(sourcePath: string, targetKey: string): Promise<void> {
-		if (!this.s3Client || !this.s3Bucket) return;
+		if (callAppData?.routerIds && !callAppData.routerIds.includes(observedMediasoupRouter.router.id)) {
+			callAppData.routerIds.push(observedMediasoupRouter.router.id);
+		}
+	};
 
-		const body = await readFile(sourcePath);
+	/** Upload the router's own sample once it goes away. */
+	private handleMediasoupRouterRemoved = async ({ observedMediasoupRouter }: EventScope<'mediasoup-router-removed'>): Promise<void> => {
+		logger.debug('handleMediasoupRouterRemoved() [routerId: %s, sample: %o, appData: %o]', observedMediasoupRouter.router.id, observedMediasoupRouter.sample, observedMediasoupRouter.appData);
 
-		return this.uploadObjectToS3(body, targetKey);
-	}
+		const { uploader } = this.options;
 
-	private async uploadObjectToS3(Body: string | Uint8Array | Buffer, targetKey: string): Promise<void> {
-		if (!this.s3Client || !this.s3Bucket) return;
+		// The router sample can be sizeable; do not stringify it for nobody.
+		if (!uploader || !observedMediasoupRouter.appData?.observedCall) return;
 
-		logger.debug('uploadObjectToS3() | uploading to S3 [key:%s]', targetKey);
+		const observedCall = observedMediasoupRouter.appData.observedCall as ObservedCall<ObservedCallAppData>;
 
-		await this.s3Client.send(new PutObjectCommand({
-			Bucket: this.s3Bucket,
-			Key: targetKey,
-			Body,
-			ContentType: 'application/x-ndjson',
-		}));
+		if (!observedCall.appData.roomId) return;
 
-		logger.debug('uploadObjectToS3() | uploaded [key:%s]', targetKey);
-	}
+		try {
+			const sample = JSON.stringify(observedMediasoupRouter.sample);
+			const roomId = observedCall.appData.roomId;
+			const targetKey = `${roomId}/${observedCall.callId}/mediasoup-router-${observedMediasoupRouter.router.id}.json`;
+
+			await uploader.upload({
+				key: targetKey,
+				body: sample,
+				contentType: 'application/json',
+			});
+		} catch (error) {
+			logger.error('handleMediasoupRouterRemoved() upload failed [routerId: %s, error: %o]', observedMediasoupRouter.router.id, error);
+		}
+	};
+
 }

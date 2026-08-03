@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 ARG listenPort=3000
 ENV LISTEN_PORT=$listenPort
@@ -13,7 +13,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable
 RUN yarn run build
 
 EXPOSE ${LISTEN_PORT}
