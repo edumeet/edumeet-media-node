@@ -2,7 +2,7 @@ import { JsonlFileSink } from '@observertc/observer-js';
 import { access, mkdtemp, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { ObserverService } from '../../src/ObserverService';
+import { ObservedCallAppData, ObserverService } from '../../src/ObserverService';
 import { Uploader, UploadOptions } from '../../src/uploader/Uploader';
 
 const stubUploader = (deleteAfterUpload: boolean, fail = false) => {
@@ -130,11 +130,18 @@ describe('ObserverService - staged file cleanup', () => {
 });
 
 /** Minimal stand-ins for the observer scopes; only the fields the handlers read. */
-const callScope = (overrides: Record<string, unknown> = {}) => ({
+type CallScope = {
+	callId: string;
+	numberOfIssues: number;
+	clientsUsedTurn: Set<string>;
+	appData: ObservedCallAppData;
+};
+
+const callScope = (overrides: Partial<CallScope> = {}): CallScope => ({
 	callId: 'call-1',
 	numberOfIssues: 2,
 	clientsUsedTurn: new Set([ 'client-1' ]),
-	appData: { roomId: 'room-1', clients: {}, routerIds: [] as string[] },
+	appData: { roomId: 'room-1', clients: {}, routerIds: [] },
 	...overrides,
 });
 

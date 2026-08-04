@@ -263,7 +263,7 @@ describe('describeSamplesUploadConfig', () => {
 			type: 'http',
 			url: 'https://collector/samples',
 			credentials: 'env:COLLECTOR_TOKEN',
-			deleteAfterUpload: false,
+			deleteAfterUpload: true,
 		});
 	});
 
@@ -276,7 +276,7 @@ describe('describeSamplesUploadConfig', () => {
 			region: '<sdk default>',
 			forcePathStyle: false,
 			credentials: 'sdk default chain',
-			deleteAfterUpload: false,
+			deleteAfterUpload: true,
 		});
 	});
 });
