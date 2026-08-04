@@ -344,19 +344,32 @@ describe('createUploader - credential resolution failures', () => {
 });
 
 describe('S3Uploader - client configuration', () => {
-	const clientOf = (uploader: S3Uploader): S3Client =>
-		(uploader as unknown as { client: S3Client }).client;
+	// The AWS SDK is imported on first upload, so the client does not exist until
+	// `ensureSdk()` has run. These tests force that load rather than uploading.
+	const clientOf = async (uploader: S3Uploader): Promise<S3Client> => {
+		await (uploader as unknown as { ensureSdk(): Promise<unknown> }).ensureSdk();
+
+		return (uploader as unknown as { client: S3Client }).client;
+	};
 
 	test('applies region and path style from the URI', async () => {
 		const uploader = new S3Uploader(s3Config('s3://bucket?endpoint=http://minio:9000&region=eu-north-1'));
-		const { config } = clientOf(uploader);
+		const { config } = await clientOf(uploader);
 
 		expect(await config.region()).toBe('eu-north-1');
 		expect(config.forcePathStyle).toBe(true);
 	});
 
 	test('leaves path style off for a plain AWS target', async () => {
-		expect(clientOf(new S3Uploader(s3Config('s3://bucket?region=eu-west-1'))).config.forcePathStyle).toBe(false);
+		const client = await clientOf(new S3Uploader(s3Config('s3://bucket?region=eu-west-1')));
+
+		expect(client.config.forcePathStyle).toBe(false);
+	});
+
+	test('does not build a client before the first upload', () => {
+		const uploader = new S3Uploader(s3Config('s3://bucket'));
+
+		expect((uploader as unknown as { client?: S3Client }).client).toBeUndefined();
 	});
 });
 
@@ -461,15 +474,21 @@ describe('deleteAfterUpload wiring', () => {
 		expect(new HttpUploader(httpConfig('https://collector/s?deleteAfterUpload=true')).deleteAfterUpload).toBe(true);
 	});
 
-	test('defaults to false when the URI is silent', () => {
-		expect(new S3Uploader(s3Config('s3://samples')).deleteAfterUpload).toBe(false);
-		expect(new HttpUploader(httpConfig('https://collector/s')).deleteAfterUpload).toBe(false);
+	test('defaults to true when the URI is silent', () => {
+		expect(new S3Uploader(s3Config('s3://samples')).deleteAfterUpload).toBe(true);
+		expect(new HttpUploader(httpConfig('https://collector/s')).deleteAfterUpload).toBe(true);
+	});
+
+	test('honours an explicit false', () => {
+		expect(new S3Uploader(s3Config('s3://samples?deleteAfterUpload=false')).deleteAfterUpload).toBe(false);
+		expect(new HttpUploader(httpConfig('https://collector/s?deleteAfterUpload=false')).deleteAfterUpload).toBe(false);
 	});
 
 	test('survives createUploader', () => {
 		expect(createUploader('s3://samples?deleteAfterUpload=true')?.deleteAfterUpload).toBe(true);
 		expect(createUploader('https://collector/s?deleteAfterUpload=true')?.deleteAfterUpload).toBe(true);
-		expect(createUploader('s3://samples')?.deleteAfterUpload).toBe(false);
+		expect(createUploader('s3://samples')?.deleteAfterUpload).toBe(true);
+		expect(createUploader('s3://samples?deleteAfterUpload=false')?.deleteAfterUpload).toBe(false);
 	});
 });
 

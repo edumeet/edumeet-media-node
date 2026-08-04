@@ -44,7 +44,9 @@ export class HttpUploader implements Uploader {
 		this.token = config.token;
 		this.maxAttempts = config.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
 		this.fetchImpl = fetchImpl;
-		this.deleteAfterUpload = config.deleteAfterUpload ?? false;
+		// An uploader only exists when one was explicitly configured, so staging
+		// files are transient by default and only kept when asked for.
+		this.deleteAfterUpload = config.deleteAfterUpload ?? true;
 	}
 
 	public async upload({ key, body, sourcePath, contentType }: UploadOptions): Promise<void> {

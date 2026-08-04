@@ -364,7 +364,7 @@ const describeS3Config = (config: S3Config): Record<string, unknown> => ({
 	credentials: config.credentialsEnv
 		? `env:${config.credentialsEnv.toUpperCase()}_*`
 		: 'sdk default chain',
-	deleteAfterUpload: config.deleteAfterUpload ?? false,
+	deleteAfterUpload: config.deleteAfterUpload ?? true,
 	...(config.maxAttempts && { maxAttempts: config.maxAttempts }),
 });
 
@@ -374,7 +374,7 @@ const describeHttpConfig = (config: HttpConfig): Record<string, unknown> => ({
 	credentials: config.credentialsEnv
 		? `env:${config.credentialsEnv.toUpperCase()}_TOKEN`
 		: 'none',
-	deleteAfterUpload: config.deleteAfterUpload ?? false,
+	deleteAfterUpload: config.deleteAfterUpload ?? true,
 	...(config.maxAttempts && { maxAttempts: config.maxAttempts }),
 });
 
