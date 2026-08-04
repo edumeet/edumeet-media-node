@@ -1,0 +1,19 @@
+{
+	"extends": "@tsconfig/node24/tsconfig.json",
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+
+		// ts-jest downgrades module resolution unless isolatedModules is on (TS151002),
+		// and without nodenext resolution it cannot follow the "exports" map that
+		// mediasoup uses for its `mediasoup/types` entry point.
+		"isolatedModules": true,
+
+		// The existing suites import deep paths such as `mediasoup/node/lib/Router`,
+		// which the "exports" map does not publish even though the files ship. Mapping
+		// them here keeps those tests working without rewriting their imports.
+		"paths": {
+			"mediasoup/node/lib/*": [ "./node_modules/mediasoup/node/lib/*" ]
+		}
+	}
+}
