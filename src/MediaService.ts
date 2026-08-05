@@ -4,7 +4,7 @@ import * as mediasoup from 'mediasoup';
 // import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
-import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
+import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, DirectTransport, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
 
 const logger = new Logger('MediaService');
 
@@ -40,6 +40,13 @@ export interface RouterData {
 	pipeDataConsumers: Map<string, DataConsumer>;
 	activeSpeakerObservers: Map<string, ActiveSpeakerObserver>;
 	audioLevelObservers: Map<string, AudioLevelObserver>;
+
+	/**
+	 * Carries observertc sample data channels to the ObserverService. Created
+	 * lazily on the first `observertc-samples` DataProducer, so routers on nodes
+	 * without sample collection configured never pay for one.
+	 */
+	directTransport?: DirectTransport;
 	remoteClose?: boolean;
 }
 

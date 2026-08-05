@@ -1,0 +1,25 @@
+{
+	"extends": "@tsconfig/node24/tsconfig.json",
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"resolveJsonModule": true,
+
+		// Jest runs CommonJS. Under the inherited "nodenext" module setting
+		// TypeScript preserves `import()` verbatim, and jest's CJS VM then rejects
+		// it with "A dynamic import callback was invoked without
+		// --experimental-vm-modules". Compiling to CommonJS downlevels the lazy AWS
+		// SDK load in S3Uploader to a require(), which jest resolves fine. The
+		// production build uses src/tsconfig.json, so the shipped code keeps native
+		// import() and the SDK stays lazily loaded at runtime.
+		"module": "commonjs",
+		"moduleResolution": "node10",
+
+		// Node10 resolution ignores the "exports" map, so mediasoup's subpath entry
+		// points have to be mapped explicitly: `mediasoup/types` for src, and the
+		// deep `mediasoup/node/lib/*` paths the existing suites still import.
+		"paths": {
+			"mediasoup/types": [ "./node_modules/mediasoup/node/lib/types" ],
+			"mediasoup/node/lib/*": [ "./node_modules/mediasoup/node/lib/*" ]
+		}
+	}
+}

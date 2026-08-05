@@ -13,6 +13,8 @@ import { Logger } from 'edumeet-common';
 import { createHttpEndpoints } from './httpEndpoints';
 import { IOServerConnection } from './common/IOServerConnection';
 import LoadManager from './LoadManager';
+import { ObserverService } from './ObserverService';
+import { createUploader } from './uploader/Uploader';
 
 const logger = new Logger('MediaNode');
 
@@ -66,6 +68,11 @@ const showUsage = () => {
 	logger.debug('    The interval in ms to poll load usage.\n\n');
 	logger.debug('  --cpuPercentCascadingLimit <percent> (optional, default: 66)');
 	logger.debug('    The CPU usage percent limit to start cascading.\n\n');
+	logger.debug('  --samplesStorePath <path> (optional, default: none)');
+	logger.debug('    Local directory to write observertc JSONL sample files to.\n\n');
+	logger.debug('  --samplesUploadUri <uri> (optional, default: none)');
+	logger.debug('    Upload observertc samples, e.g. "s3://bucket/prefix?region=eu-north-1".');
+	logger.debug('    Requires --samplesStorePath, otherwise it is ignored.\n\n');
 };
 
 const roomServerConnections = new Map<string, RoomServerConnection>();
@@ -131,6 +138,8 @@ export const cancelDrain = () => {
 		loadPollingInterval = 10_000,
 		cpuPercentCascadingLimit = 66,
 		imageTag,
+		samplesStorePath,
+		samplesUploadUri,
 	} = minimist(process.argv.slice(2));
 	
 	if (!ip || help || usage) {
@@ -159,6 +168,11 @@ export const cancelDrain = () => {
 	}, 'Starting...');
 
 	interactiveServer(roomServerConnections, roomServers);
+
+	const observerService = new ObserverService({
+		samplesStorePath,
+		uploader: createUploader(samplesUploadUri),
+	});
 
 	const mediaService = await MediaService.create({
 		ip,
@@ -245,6 +259,7 @@ export const cancelDrain = () => {
 
 		const roomServer = new RoomServer({
 			mediaService,
+			observerService,
 			roomServerConnection,
 			imageTag
 		});
@@ -259,6 +274,7 @@ export const cancelDrain = () => {
 		roomServerConnections.forEach((roomServerConnection) =>
 			roomServerConnection.close());
 		roomServers.forEach((roomServer) => roomServer.close());
+		observerService.close();
 		mediaService.close();
 		httpsServer.close();
 
