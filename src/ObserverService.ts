@@ -1,5 +1,5 @@
 import { Logger } from 'edumeet-common';
-import { unlink } from 'fs/promises';
+import { stat, unlink } from 'fs/promises';
 import { DataConsumer } from 'mediasoup/types';
 import * as mediasoup from 'mediasoup';
 import {
@@ -92,6 +92,19 @@ export class ObserverService extends Observer {
 
 		logger.debug('constructor()');
 
+		if (options.samplesStorePath && options.uploader) {
+			logger.info(
+				'observertc sample collection enabled [storePath: %s, deleteAfterUpload: %s]',
+				options.samplesStorePath,
+				String(options.uploader.deleteAfterUpload)
+			);
+		} else if (options.samplesStorePath) {
+			logger.info(
+				'observertc sample collection enabled, uploads disabled [storePath: %s]',
+				options.samplesStorePath
+			);
+		}
+
 		this.setupObserverEvents();
 		this.config.createCallAppData = this.createObservedCallAppData.bind(this);
 	}
@@ -156,8 +169,14 @@ export class ObserverService extends Observer {
 		// about routers, so they can be attached to the calls that use them.
 		mediasoup.observer.on('newworker', this.handleNewMediasoupWorker);
 
-		if (this.options.uploader) {
+		// Subscribed whenever there is a store path, not only when uploading: the
+		// sink is what writes the file, and its completion is worth reporting even
+		// when nothing is sent anywhere.
+		if (this.options.samplesStorePath) {
 			this.on('client-sink-created', this.handleClientSinkCreated);
+		}
+
+		if (this.options.uploader) {
 			this.on('client-added', this.handleClientAdded);
 			this.on('client-updated', this.handleClientUpdated);
 			this.on('call-closed', this.handleCallClosed);
@@ -171,11 +190,21 @@ export class ObserverService extends Observer {
 	 */
 	private handleClientSinkCreated = ({ sink, observedCall, observedClient }: EventScope<'client-sink-created'>): void => {
 		const sourcePath = sink instanceof JsonlFileSink ? sink.path : undefined;
-		const { uploader } = this.options;
 
-		if (!sourcePath || !uploader) return;
+		if (!sourcePath) return;
 
 		sink.once('close', async () => {
+			// The sink is closed, so the file is complete. Size is included because a
+			// 0-byte file is the tell-tale of a client that connected but never sent
+			// a sample, which otherwise looks identical to success.
+			const bytes = await stat(sourcePath)
+				.then((s) => s.size)
+				.catch(() => -1);
+
+			const { uploader } = this.options;
+
+			if (!uploader) return logger.info('sample file written [clientId: %s, bytes: %d, path: %s]', observedClient.clientId, bytes, sourcePath);
+
 			const call = observedCall as ObservedCall<ObservedCallAppData>;
 			const sampleAttachments = observedClient.attachments as Record<string, unknown> | undefined;
 			const roomId = safeKeySegment(call.appData?.roomId ?? sampleAttachments?.['roomId'], 'unknown-room');
@@ -187,6 +216,8 @@ export class ObserverService extends Observer {
 					sourcePath,
 					contentType: 'application/x-ndjson',
 				});
+
+				logger.info('sample file uploaded [key: %s, bytes: %d] from %s, deletedAfterUpload: %s', targetKey, bytes, sourcePath, String(uploader.deleteAfterUpload));
 
 				if (uploader.deleteAfterUpload) {
 					await this.deleteUploadedFile(sourcePath, targetKey);
@@ -266,6 +297,9 @@ export class ObserverService extends Observer {
 				body: sample,
 				contentType: 'application/json',
 			});
+
+			logger.info('sample file uploaded [key: %s] from call %s', targetKey, observedCall.callId);
+
 		} catch (error) {
 			logger.error({ err: error }, 'handleCallClosed() upload failed [callId: %s]', observedCall.callId);
 		}
@@ -332,6 +366,8 @@ export class ObserverService extends Observer {
 				body: sample,
 				contentType: 'application/json',
 			});
+
+			logger.info('sample file uploaded [key: %s] for router %s', targetKey, observedMediasoupRouter.router.id);
 		} catch (error) {
 			logger.error({ err: error }, 'handleMediasoupRouterRemoved() upload failed [routerId: %s]', observedMediasoupRouter.router.id);
 		}
@@ -344,6 +380,21 @@ export class ObserverService extends Observer {
 	 */
 	public override close(): void {
 		mediasoup.observer.off('newworker', this.handleNewMediasoupWorker);
+
+		this.off('peer-connection-added', this.handlePeerConnectionAdded);
+		this.off('mediasoup-router-added', this.handleMediasoupRouterAdded);
+		this.off('mediasoup-router-matched-with-peer-connection', this.handleMediasoupRouterMatched);
+
+		if (this.options.samplesStorePath) {
+			this.off('client-sink-created', this.handleClientSinkCreated);
+		}
+
+		if (this.options.uploader) {
+			this.off('client-added', this.handleClientAdded);
+			this.off('client-updated', this.handleClientUpdated);
+			this.off('call-closed', this.handleCallClosed);
+			this.off('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
+		}
 
 		super.close();
 	}
