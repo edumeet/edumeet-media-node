@@ -31,6 +31,10 @@
  * Object keys are appended to the base path, so a key of
  * `room/call/client.jsonl` is POSTed to `<basePath>/room/call/client.jsonl`.
  *
+ * Fragments are rejected rather than carried: a `#...` never leaves the process,
+ * so a base that ends in one would quietly send every upload to the path in
+ * front of it instead of where the value appears to point.
+ *
  * http(s):// parameters:
  *   credentialsEnv Name prefix of the env var holding a bearer token, e.g.
  *                  `COLLECTOR` reads COLLECTOR_TOKEN.
@@ -201,6 +205,20 @@ const assertNoUserInfo = (url: URL): void => {
 	);
 };
 
+/**
+ * A fragment is never sent over the wire: it is stripped before the request
+ * leaves the process. Keeping one would silently move uploads elsewhere — with
+ * a base of `https://host/path#frag` the appended key becomes part of the
+ * fragment and the POST lands on `/path` — so say so instead of guessing.
+ */
+const assertNoFragment = (url: URL, value: string): void => {
+	if (!url.hash) return;
+
+	throw new SamplesUploadUriError(
+		`--samplesUploadUri: a URI fragment ("${url.hash}") is not supported, it is never sent in a request: "${value}"`
+	);
+};
+
 const assertKnownParams = (url: URL, allowed: string[]): void => {
 	const unknown = [ ...url.searchParams.keys() ].filter((key) => !allowed.includes(key));
 
@@ -238,6 +256,7 @@ const parseS3Uri = (value: string, env: NodeJS.ProcessEnv): S3Config => {
 	}
 
 	assertNoUserInfo(url);
+	assertNoFragment(url, value);
 	assertKnownParams(url, S3_PARAMS);
 
 	const bucket = url.hostname;
@@ -298,6 +317,7 @@ const parseHttpUri = (value: string, env: NodeJS.ProcessEnv): HttpConfig => {
 	}
 
 	assertNoUserInfo(url);
+	assertNoFragment(url, value);
 	assertKnownParams(url, HTTP_PARAMS);
 
 	const credentialsEnv = url.searchParams.get('credentialsEnv') ?? undefined;

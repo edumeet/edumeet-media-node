@@ -15,6 +15,23 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 const isRetriable = (status: number): boolean => status === 429 || status >= 500;
 
 /**
+ * Release the response body.
+ *
+ * Nothing here ever reads one, and Node's fetch (undici) keeps the underlying
+ * connection tied up until the body is consumed or cancelled. Leaving them
+ * dangling costs us connection reuse and, under retry or load, leaks sockets —
+ * so every response is discarded on every path out of the attempt.
+ */
+const discardBody = async (response: Response): Promise<void> => {
+	try {
+		await response.body?.cancel();
+	} catch {
+		// Already consumed, already errored, or a stubbed fetch with no body at
+		// all. Nothing left to release either way, and the upload does not care.
+	}
+};
+
+/**
  * POSTs objects to an HTTP endpoint.
  *
  * The key is appended to the base path, so a key of `some/path/object.json` is
@@ -96,6 +113,8 @@ export class HttpUploader implements Uploader {
 
 				continue;
 			}
+
+			await discardBody(response);
 
 			if (response.ok) {
 				logger.debug('post() uploaded [url: %s, status: %d]', target, response.status);

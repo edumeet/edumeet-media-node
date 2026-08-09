@@ -468,6 +468,68 @@ describe('HttpUploader - request shape', () => {
 	});
 });
 
+/*
+ * Nothing here reads a response body, and undici holds the connection until one
+ * is read or cancelled — so an unread body costs connection reuse and, under
+ * retry, leaks. Every attempt has to release its own.
+ */
+describe('HttpUploader - response bodies', () => {
+	const bodyStub = () => {
+		const cancel = jest.fn().mockResolvedValue(undefined);
+
+		return { cancel, body: { cancel } as unknown as NonNullable<Response['body']> };
+	};
+
+	test('cancels the body of a successful response', async () => {
+		const { cancel, body } = bodyStub();
+		const impl = stubFetch({ body });
+
+		await new HttpUploader(httpConfig('https://collector/s'), impl)
+			.upload({ key: 'k', body: 'x', contentType: 'application/json' });
+
+		expect(cancel).toHaveBeenCalledTimes(1);
+	});
+
+	test('cancels the body of every attempt, not just the last', async () => {
+		const first = bodyStub();
+		const second = bodyStub();
+		const impl = stubFetch(
+			{ ok: false, status: 503, statusText: 'Service Unavailable', body: first.body },
+			{ body: second.body },
+		);
+
+		await new HttpUploader(httpConfig('https://collector/s?maxAttempts=2'), impl)
+			.upload({ key: 'k', body: 'x', contentType: 'application/json' });
+
+		expect(first.cancel).toHaveBeenCalledTimes(1);
+		expect(second.cancel).toHaveBeenCalledTimes(1);
+	});
+
+	test('cancels the body before giving up on a non-retriable status', async () => {
+		const { cancel, body } = bodyStub();
+		const impl = stubFetch({ ok: false, status: 400, statusText: 'Bad Request', body });
+
+		await expect(new HttpUploader(httpConfig('https://collector/s'), impl)
+			.upload({ key: 'k', body: 'x', contentType: 'application/json' })).rejects.toThrow(/400/);
+
+		expect(cancel).toHaveBeenCalledTimes(1);
+	});
+
+	test('does not fail the upload when the body refuses to cancel', async () => {
+		const body = { cancel: jest.fn().mockRejectedValue(new Error('locked')) } as unknown as NonNullable<Response['body']>;
+
+		await expect(new HttpUploader(httpConfig('https://collector/s'), stubFetch({ body }))
+			.upload({ key: 'k', body: 'x', contentType: 'application/json' })).resolves.toBeUndefined();
+	});
+
+	test('tolerates a response with no body at all', async () => {
+		const impl = stubFetch({ body: null });
+
+		await expect(new HttpUploader(httpConfig('https://collector/s'), impl)
+			.upload({ key: 'k', body: 'x', contentType: 'application/json' })).resolves.toBeUndefined();
+	});
+});
+
 describe('deleteAfterUpload wiring', () => {
 	test('reaches the uploader from the URI', () => {
 		expect(new S3Uploader(s3Config('s3://samples?deleteAfterUpload=true')).deleteAfterUpload).toBe(true);

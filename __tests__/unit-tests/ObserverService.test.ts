@@ -87,6 +87,42 @@ describe('ObserverService - uploader wiring', () => {
 	});
 });
 
+describe('ObserverService - options handling', () => {
+	test('never writes to the options object it was handed', () => {
+		const { uploader } = stubUploader(false);
+		const options = { uploader };
+		const service = new ObserverService(options);
+
+		// The uploader is dropped for want of a store path, but only internally:
+		// the caller may well reuse this object for a second service.
+		expect(options.uploader).toBe(uploader);
+		expect(service.options).not.toBe(options);
+		expect(service.options.uploader).toBeUndefined();
+	});
+
+	// minimist yields `true` for a valueless `--samplesStorePath`, and handing
+	// that to the file sink factory used to take the node down at startup.
+	test('disables storage for a valueless --samplesStorePath instead of throwing', () => {
+		const { uploader } = stubUploader(false);
+		const service = new ObserverService({ samplesStorePath: true, uploader });
+
+		expect(service.options.samplesStorePath).toBeUndefined();
+		expect(service.options.uploader).toBeUndefined();
+		expect(service.listenerCount('client-sink-created')).toBe(0);
+	});
+
+	test('disables storage for a blank --samplesStorePath', () => {
+		expect(new ObserverService({ samplesStorePath: '' }).options.samplesStorePath).toBeUndefined();
+		expect(new ObserverService({ samplesStorePath: '   ' }).options.samplesStorePath).toBeUndefined();
+		expect(new ObserverService({ samplesStorePath: 42 }).options.samplesStorePath).toBeUndefined();
+	});
+
+	test('keeps a usable path, trimmed', () => {
+		expect(new ObserverService({ samplesStorePath: ` ${tmpdir()} ` }).options.samplesStorePath).toBe(tmpdir());
+		expect(new ObserverService({ samplesStorePath: tmpdir() }).listenerCount('client-sink-created')).toBe(1);
+	});
+});
+
 describe('ObserverService - staged file cleanup', () => {
 	test('uploads the sink file under the room/call/client key', async () => {
 		const { uploader, calls } = stubUploader(false);

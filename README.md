@@ -124,7 +124,9 @@ http[s]://<host>[:<port>][/<basePath>][?<param>=<value>&...]
 | `deleteAfterUpload` | `true` | Delete the staged JSONL file after a successful upload. |
 
 Unknown parameters are rejected per scheme, so a typo like `?regoin=eu-north-1` is reported rather
-than silently ignored.
+than silently ignored. A URI fragment is rejected for the same reason: a fragment is never sent in
+an HTTP request, so a base like `https://collector.example.com/observertc#prod` would quietly POST
+to `/observertc` instead of where it appears to point.
 
 ### Credentials
 
@@ -168,6 +170,8 @@ polluting the key space or escaping the configured HTTP base path.
 
 - A malformed `--samplesUploadUri` **does not stop the node**. It logs a warning naming the
   problem and starts with uploads disabled.
+- `--samplesStorePath` passed without a value, or with a blank one, is treated the same way:
+  sample storage is disabled with a warning, and any upload URI alongside it is discarded.
 - Upload failures are logged. The artifact is lost, calls are unaffected. There is no queue, no
   spooling, and no replay after a restart.
 - HTTP retries network errors, `429` and `5xx` with exponential backoff up to `maxAttempts`, with

@@ -64,19 +64,65 @@ export type ObserverServiceOptions = {
 	uploader?: Uploader;
 }
 
+/**
+ * What the constructor accepts, as opposed to what the service settles on.
+ *
+ * `samplesStorePath` is widened here because it arrives straight from minimist,
+ * which yields `true` for a valueless `--samplesStorePath` rather than a string.
+ * Passing that on would reach `createJsonlFileSinkFactory({ directory })` and
+ * take the node down at startup, so the constructor normalises it first;
+ * `service.options` only ever exposes the narrowed form.
+ */
+export type ObserverServiceInput = Omit<ObserverServiceOptions, 'samplesStorePath'> & {
+	samplesStorePath?: unknown;
+}
+
 export type ObserverServiceEvents = Omit<ObserverEvents, 'observer-closed' | 'sample-rejected'>;
 
 /** The single argument the observer hands a listener for event `K`. */
 type EventScope<K extends keyof ObserverEvents> = ObserverEvents[K][0];
 
 export class ObserverService extends Observer {
-	private static buildObserverConfig(options: ObserverServiceOptions): ConstructorParameters<typeof Observer>[0] {
-		if (options.uploader && !options.samplesStorePath) {
-			logger.warn('buildObserverConfig() ignoring --samplesUploadUri, nothing to upload without --samplesStorePath');
+	/**
+	 * Narrow the raw `--samplesStorePath` value to a usable directory, or to
+	 * `undefined` with a warning. Sample storage is a diagnostic, so a malformed
+	 * flag disables it rather than stopping the node from starting.
+	 */
+	private static normalizeStorePath(value: unknown): string | undefined {
+		if (value === undefined) return undefined;
+
+		const directory = typeof value === 'string' ? value.trim() : '';
+
+		if (!directory) {
+			logger.warn(
+				'normalizeStorePath() --samplesStorePath needs a directory, sample storage disabled [value: %s]',
+				String(value)
+			);
+
+			return undefined;
+		}
+
+		return directory;
+	}
+
+	/**
+	 * The options the service actually runs on. This is a private copy: the
+	 * caller's object is never written to, so it stays safe to reuse.
+	 */
+	private static resolveOptions(input: ObserverServiceInput): ObserverServiceOptions {
+		const samplesStorePath = ObserverService.normalizeStorePath(input.samplesStorePath);
+		const options: ObserverServiceOptions = { ...input, samplesStorePath };
+
+		if (options.uploader && !samplesStorePath) {
+			logger.warn('resolveOptions() ignoring --samplesUploadUri, nothing to upload without --samplesStorePath');
 
 			options.uploader = undefined;
 		}
 
+		return options;
+	}
+
+	private static buildObserverConfig(options: ObserverServiceOptions): ConstructorParameters<typeof Observer>[0] {
 		return {
 			createClientSink: options.samplesStorePath
 				? createJsonlFileSinkFactory({ directory: options.samplesStorePath })
@@ -87,8 +133,14 @@ export class ObserverService extends Observer {
 		};
 	}
 
-	public constructor(public options: ObserverServiceOptions) {
+	public readonly options: ObserverServiceOptions;
+
+	public constructor(input: ObserverServiceInput) {
+		const options = ObserverService.resolveOptions(input);
+
 		super(ObserverService.buildObserverConfig(options));
+
+		this.options = options;
 
 		logger.debug('constructor()');
 

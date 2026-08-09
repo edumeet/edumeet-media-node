@@ -239,6 +239,28 @@ describe('parseSamplesUploadUri - http', () => {
 	});
 });
 
+describe('parseSamplesUploadUri - fragments', () => {
+	// A fragment never leaves the process, so a base that carries one would send
+	// every upload to the path in front of it instead of where it appears to point.
+	test('rejects a fragment on an http(s) target', () => {
+		expect(() => parseSamplesUploadUri('https://collector/samples#frag', EMPTY_ENV)).toThrow(SamplesUploadUriError);
+		expect(() => parseSamplesUploadUri('https://collector/samples#frag', EMPTY_ENV)).toThrow(/fragment/);
+	});
+
+	test('rejects a fragment that follows the query string', () => {
+		expect(() => parseSamplesUploadUri('https://collector/samples?maxAttempts=2#frag', EMPTY_ENV)).toThrow(/fragment/);
+	});
+
+	test('rejects a fragment on an s3 target too, rather than dropping it silently', () => {
+		expect(() => parseSamplesUploadUri('s3://bucket/prod#frag', EMPTY_ENV)).toThrow(/fragment/);
+	});
+
+	test('leaves fragment-free values alone', () => {
+		expect(parseHttp('https://collector/samples').url).toBe('https://collector/samples');
+		expect(parseS3('s3://bucket/prod').keyPrefix).toBe('prod');
+	});
+});
+
 describe('describeSamplesUploadConfig', () => {
 	test('renders a reference instead of the resolved secret', () => {
 		const config = parseSamplesUploadUri('s3://bucket/prod?endpoint=http://minio:9000&credentialsEnv=minio', {
