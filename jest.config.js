@@ -3,7 +3,7 @@ module.exports = {
 	modulePathIgnorePatterns: [ '<rootDir>/dist' ],
 	transform: {
 		'^.+\\.[t]s$': [
-			'ts-jest', { tsconfig: 'src/tsconfig.json' }
+			'ts-jest', { tsconfig: '__tests__/tsconfig.json' }
 		]
 	}
 }
