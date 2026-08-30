@@ -263,7 +263,7 @@ export default class MediaService {
 			const resourses = await Promise.allSettled(
 				this.workers.items.map((w) => w.getResourceUsage())
 			);
-			
+
 			const usages: number[] = [];
 
 			resourses.forEach((result, index) => {
@@ -272,12 +272,12 @@ export default class MediaService {
 					const workerData = worker.appData as unknown as WorkerData;
 
 					/* eslint-disable camelcase */
-					const {	ru_utime: oldRuUtime, ru_stime: oldRuStime } = 
+					const {	ru_utime: oldRuUtime, ru_stime: oldRuStime } =
 						workerData.resourceUsage ?? { ru_utime: 0, ru_stime: 0 };
 					const { ru_utime: newRuUtime, ru_stime: newRuStime } = result.value;
 
 					workerData.cpuUsage = (
-						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) / 
+						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) /
 						this.loadPollingInterval
 					) * 100;
 					/* eslint-enable camelcase */
@@ -293,7 +293,7 @@ export default class MediaService {
 
 	@skipIfClosed
 	private async getOrCreateRouterPromise(
-		roomId: string, 
+		roomId: string,
 		worker: Worker
 	): Promise<Router> {
 		logger.debug('getOrCreateRouter() [roomId: %s, workerPid: %s]', roomId, worker.pid);
@@ -491,23 +491,6 @@ export default class MediaService {
 	 *
 	 * 	const getTransportType: TransportTypeFunction = (transport) => {
 	 * 		return transport.constructor.name as MediasoupTransportType;
-	 * 	};
-	 *
-	 * 	const config: MediasoupMonitorConfig = {
-	 * 		collectingPeriodInMs: 5000,
-	 * 		samplingPeriodInMs: 30000,
-	 * 		mediasoup,
-	 * 		mediasoupCollectors: {
-	 * 			getTransportType,
-	 * 			pollDirectTransportStats: pollStats,
-	 * 			pollPlainRtpTransportStats: pollStats,
-	 * 			pollWebRtcTransportStats: pollStats,
-	 * 			pollPipeTransportStats: pollStats,
-	 * 			pollConsumerStats: pollStats,
-	 * 			pollProducerStats: pollStats,
-	 * 			pollDataProducerStats: pollStats,
-	 * 			pollDataConsumerStats: pollStats,
-	 * 		}
 	 * 	};
 	 *
 	 * 	return createMediasoupMonitor(config);

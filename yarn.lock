@@ -1011,14 +1011,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@observertc/observer-js@npm:1.0.0-beta.13":
-  version: 1.0.0-beta.13
-  resolution: "@observertc/observer-js@npm:1.0.0-beta.13"
+"@observertc/observer-js@npm:1.0.0-beta.23":
+  version: 1.0.0-beta.23
+  resolution: "@observertc/observer-js@npm:1.0.0-beta.23"
   dependencies:
     "@bufbuild/protobuf": "npm:1.1.1"
     events: "npm:^3.3.0"
     uuid: "npm:^11.1.1"
-  checksum: 10c0/9abf03310ccca346ec956fd2ae9e67e4369fa1d3357ffd1ee40c8b1288828795dfc8cd3c259066ddf9ce17895d10b70febe7d2a5f0f5b0a6b1d55ba86e2e91e2
+  peerDependencies:
+    mediasoup: ">=3.11.0"
+  peerDependenciesMeta:
+    mediasoup:
+      optional: true
+  checksum: 10c0/203bdf6d4866ec7f52c719a7e0ba8ea9c56b308f1fd046bce020ccb5356ee88805fe6ddff22cbcaf4629d08cb5fcb778fc390172b0a24beb4dac4be9fad4aa49
   languageName: node
   linkType: hard
 
@@ -2220,7 +2225,7 @@ __metadata:
   resolution: "edumeet-media-node@workspace:."
   dependencies:
     "@aws-sdk/client-s3": "npm:^3.1102.0"
-    "@observertc/observer-js": "npm:1.0.0-beta.13"
+    "@observertc/observer-js": "npm:1.0.0-beta.23"
     "@tsconfig/node24": "npm:^24.0.4"
     "@types/debug": "npm:^4.1.13"
     "@types/jest": "npm:^30.0.0"

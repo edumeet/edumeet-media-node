@@ -12,6 +12,7 @@ import {
 	setObserverLogger,
 } from '@observertc/observer-js';
 import { Uploader } from './uploader/Uploader';
+import { randomUUID } from 'crypto';
 
 const logger = new Logger('ObserverService');
 
@@ -53,6 +54,12 @@ export type ObservedCallAppData = {
 export type ObserverServiceOptions = {
 
 	/**
+	 * The ID of the SFU this service is running in. This is used to tag samples with the SFU they came from, so that the observer can distinguish between samples
+	 * from different SFUs when multiple nodes are reporting to the same observer.
+	 */
+	sfuId: string;
+
+	/**
 	 * Directory the per-client JSONL files are written to.
 	 *
 	 * Required for uploading: the observer only creates a file sink when it has
@@ -73,8 +80,9 @@ export type ObserverServiceOptions = {
  * take the node down at startup, so the constructor normalises it first;
  * `service.options` only ever exposes the narrowed form.
  */
-export type ObserverServiceInput = Omit<ObserverServiceOptions, 'samplesStorePath'> & {
+export type ObserverServiceInput = Omit<ObserverServiceOptions, 'samplesStorePath' | 'sfuId'> & {
 	samplesStorePath?: unknown;
+	sfuId?: string;
 }
 
 export type ObserverServiceEvents = Omit<ObserverEvents, 'observer-closed' | 'sample-rejected'>;
@@ -111,7 +119,8 @@ export class ObserverService extends Observer {
 	 */
 	private static resolveOptions(input: ObserverServiceInput): ObserverServiceOptions {
 		const samplesStorePath = ObserverService.normalizeStorePath(input.samplesStorePath);
-		const options: ObserverServiceOptions = { ...input, samplesStorePath };
+		const sfuId = input.sfuId ?? randomUUID().substring(0, 8);
+		const options: ObserverServiceOptions = { ...input, samplesStorePath, sfuId };
 
 		if (options.uploader && !samplesStorePath) {
 			logger.warn('resolveOptions() ignoring --samplesUploadUri, nothing to upload without --samplesStorePath');
@@ -130,6 +139,10 @@ export class ObserverService extends Observer {
 			closeCallIfEmptyForMs: 5 * 60 * 1000, // 5 minutes
 			closeClientIfIdleForMs: 1 * 60 * 1000, // 1 minute,
 			createRemoteTrackResolver: createDefaultMediasoupRemoteTrackResolverFactory(),
+			autoUpdateOnCallUpdate: true,
+			callSummary: {
+				include: [ 'clients', 'issues', 'scores' ],
+			}
 		};
 	}
 
@@ -159,6 +172,10 @@ export class ObserverService extends Observer {
 
 		this.setupObserverEvents();
 		this.config.createCallAppData = this.createObservedCallAppData.bind(this);
+	}
+
+	private get sfuId(): string {
+		return this.options.sfuId;
 	}
 
 	/**
@@ -231,7 +248,7 @@ export class ObserverService extends Observer {
 		if (this.options.uploader) {
 			this.on('client-added', this.handleClientAdded);
 			this.on('client-updated', this.handleClientUpdated);
-			this.on('call-closed', this.handleCallClosed);
+			this.on('call-summary', this.handleCallSummary);
 			this.on('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
 		}
 	}
@@ -322,11 +339,11 @@ export class ObserverService extends Observer {
 		logger.debug('handlePeerConnectionAdded() [callId: %s, clientId: %s, peerConnectionId: %s]', observedCall.callId, observedClient.clientId, observedPeerConnection.peerConnectionId);
 	};
 
-	/** Upload the call summary once the call is over. */
-	private handleCallClosed = async (scope: EventScope<'call-closed'>): Promise<void> => {
+	private handleCallSummary = async (scope: EventScope<'call-summary'>): Promise<void> => {
 		const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
+		const summary = scope.summary;
 
-		logger.debug('handleCallClosed() [callId: %s, appData: %o]', observedCall.callId, observedCall.appData);
+		logger.debug('handleCallSummary() [callId: %s, appData: %o]', observedCall.callId, observedCall.appData);
 
 		const { uploader } = this.options;
 
@@ -335,14 +352,16 @@ export class ObserverService extends Observer {
 		if (!uploader || !observedCall.appData) return;
 
 		try {
-			const sample = JSON.stringify({
+			summary.attachments = {
 				...observedCall.appData,
-				numberOfIssues: observedCall.numberOfIssues,
+				numberOfClientIssues: observedCall.numberOfIssues,
 				clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
-			});
+				sfuId: this.sfuId,
+			};
 
+			const sample = JSON.stringify(summary);
 			const callRoomId = safeKeySegment(observedCall.appData.roomId, 'unknown-room');
-			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
+			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary-${this.sfuId}.json`;
 
 			await uploader.upload({
 				key: targetKey,
@@ -353,7 +372,7 @@ export class ObserverService extends Observer {
 			logger.info('sample file uploaded [key: %s] from call %s', targetKey, observedCall.callId);
 
 		} catch (error) {
-			logger.error({ err: error }, 'handleCallClosed() upload failed [callId: %s]', observedCall.callId);
+			logger.error({ err: error }, 'handleCallSummary() upload failed [callId: %s]', observedCall.callId);
 		}
 	};
 
@@ -363,6 +382,11 @@ export class ObserverService extends Observer {
 			this.createObservedMediasoupRouter({
 				router,
 				matchPeerConnectionByWebRtcTransportId: true,
+				attachments: {
+					sfuId: this.sfuId,
+				}
+				// enrich: {
+				// }
 			});
 		};
 
@@ -444,7 +468,7 @@ export class ObserverService extends Observer {
 		if (this.options.uploader) {
 			this.off('client-added', this.handleClientAdded);
 			this.off('client-updated', this.handleClientUpdated);
-			this.off('call-closed', this.handleCallClosed);
+			this.off('call-summary', this.handleCallSummary);
 			this.off('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
 		}
 

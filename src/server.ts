@@ -141,10 +141,10 @@ export const cancelDrain = () => {
 		samplesStorePath,
 		samplesUploadUri,
 	} = minimist(process.argv.slice(2));
-	
+
 	if (!ip || help || usage) {
 		showUsage();
-	
+
 		return process.exit(1);
 	}
 
