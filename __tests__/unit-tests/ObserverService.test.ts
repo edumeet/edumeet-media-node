@@ -77,13 +77,16 @@ describe('ObserverService - uploader wiring', () => {
 		const withUploader = new ObserverService({ samplesStorePath: tmpdir(), uploader });
 		const without = new ObserverService({ samplesStorePath: tmpdir() });
 
+		// The library may add its own internal listeners, so compare the delta
+		// (our subscriptions) rather than the absolute count.
 		for (const event of [ 'client-sink-created', 'client-added', 'client-updated', 'call-closed', 'mediasoup-router-removed' ]) {
-			expect(withUploader.listenerCount(event as never)).toBe(1);
-			expect(without.listenerCount(event as never)).toBe(0);
+			const delta = withUploader.listenerCount(event as never) - without.listenerCount(event as never);
+
+			expect(delta).toBe(1);
 		}
 
 		// Diagnostics stay wired either way.
-		expect(without.listenerCount('peer-connection-added' as never)).toBe(1);
+		expect(without.listenerCount('peer-connection-added' as never)).toBeGreaterThanOrEqual(1);
 	});
 });
 
@@ -119,7 +122,8 @@ describe('ObserverService - options handling', () => {
 
 	test('keeps a usable path, trimmed', () => {
 		expect(new ObserverService({ samplesStorePath: ` ${tmpdir()} ` }).options.samplesStorePath).toBe(tmpdir());
-		expect(new ObserverService({ samplesStorePath: tmpdir() }).listenerCount('client-sink-created')).toBe(1);
+		// client-sink-created is only wired when there is an uploader to send the file.
+		expect(new ObserverService({ samplesStorePath: tmpdir() }).listenerCount('client-sink-created')).toBe(0);
 	});
 });
 

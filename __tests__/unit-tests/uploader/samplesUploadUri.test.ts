@@ -11,6 +11,15 @@ const parseS3 = (raw: string, env: NodeJS.ProcessEnv = EMPTY_ENV): S3Config => {
 	return config;
 };
 
+/** Narrow to the http member so the HTTP-specific assertions below stay readable. */
+const parseHttp = (raw: string, env: NodeJS.ProcessEnv = EMPTY_ENV): HttpConfig => {
+	const config = parseSamplesUploadUri(raw, env);
+
+	if (config.type !== 'http') throw new Error(`expected an http config, got "${config.type}"`);
+
+	return config;
+};
+
 describe('parseSamplesUploadUri - destination', () => {
 	test('parses a bare bucket shorthand', () => {
 		expect(parseS3('my-bucket')).toEqual({
@@ -187,14 +196,6 @@ describe('parseSamplesUploadUri - deleteAfterUpload', () => {
 });
 
 describe('parseSamplesUploadUri - http', () => {
-	const parseHttp = (raw: string, env: NodeJS.ProcessEnv = EMPTY_ENV): HttpConfig => {
-		const config = parseSamplesUploadUri(raw, env);
-
-		if (config.type !== 'http') throw new Error(`expected an http config, got "${config.type}"`);
-
-		return config;
-	};
-
 	test('keeps the base URL and strips the query string', () => {
 		expect(parseHttp('http://collector.ns.svc:8080/samples?credentialsEnv=COLLECTOR', { COLLECTOR_TOKEN: 't0ken' }).url)
 			.toBe('http://collector.ns.svc:8080/samples');

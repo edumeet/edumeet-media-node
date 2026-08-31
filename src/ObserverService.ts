@@ -238,17 +238,11 @@ export class ObserverService extends Observer {
 		// about routers, so they can be attached to the calls that use them.
 		mediasoup.observer.on('newworker', this.handleNewMediasoupWorker);
 
-		// Subscribed whenever there is a store path, not only when uploading: the
-		// sink is what writes the file, and its completion is worth reporting even
-		// when nothing is sent anywhere.
-		if (this.options.samplesStorePath) {
-			this.on('client-sink-created', this.handleClientSinkCreated);
-		}
-
 		if (this.options.uploader) {
+			this.on('client-sink-created', this.handleClientSinkCreated);
 			this.on('client-added', this.handleClientAdded);
 			this.on('client-updated', this.handleClientUpdated);
-			this.on('call-summary', this.handleCallSummary);
+			this.on('call-closed', this.handleCallClosed);
 			this.on('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
 		}
 	}
@@ -339,40 +333,37 @@ export class ObserverService extends Observer {
 		logger.debug('handlePeerConnectionAdded() [callId: %s, clientId: %s, peerConnectionId: %s]', observedCall.callId, observedClient.clientId, observedPeerConnection.peerConnectionId);
 	};
 
-	private handleCallSummary = async (scope: EventScope<'call-summary'>): Promise<void> => {
-		const observedCall = scope.observedCall as ObservedCall<ObservedCallAppData>;
-		const summary = scope.summary;
+	private handleCallClosed = async ({ observedCall: rawCall }: EventScope<'call-closed'>): Promise<void> => {
+		const observedCall = rawCall as ObservedCall<ObservedCallAppData>;
 
-		logger.debug('handleCallSummary() [callId: %s, appData: %o]', observedCall.callId, observedCall.appData);
+		logger.debug('handleCallClosed() [callId: %s, appData: %o]', observedCall.callId, observedCall.appData);
 
 		const { uploader } = this.options;
 
-		// Nothing reads the summary when there is nowhere to send it, so bail out
-		// before paying to serialise it.
 		if (!uploader || !observedCall.appData) return;
 
 		try {
-			summary.attachments = {
+			const callRoomId = safeKeySegment(observedCall.appData.roomId, 'unknown-room');
+			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
+
+			const body = JSON.stringify({
 				...observedCall.appData,
-				numberOfClientIssues: observedCall.numberOfIssues,
+				roomId: observedCall.appData.roomId,
+				numberOfIssues: observedCall.numberOfIssues,
 				clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
 				sfuId: this.sfuId,
-			};
-
-			const sample = JSON.stringify(summary);
-			const callRoomId = safeKeySegment(observedCall.appData.roomId, 'unknown-room');
-			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary-${this.sfuId}.json`;
+			});
 
 			await uploader.upload({
 				key: targetKey,
-				body: sample,
+				body,
 				contentType: 'application/json',
 			});
 
 			logger.info('sample file uploaded [key: %s] from call %s', targetKey, observedCall.callId);
 
 		} catch (error) {
-			logger.error({ err: error }, 'handleCallSummary() upload failed [callId: %s]', observedCall.callId);
+			logger.error({ err: error }, 'handleCallClosed() upload failed [callId: %s]', observedCall.callId);
 		}
 	};
 
@@ -461,14 +452,11 @@ export class ObserverService extends Observer {
 		this.off('mediasoup-router-added', this.handleMediasoupRouterAdded);
 		this.off('mediasoup-router-matched-with-peer-connection', this.handleMediasoupRouterMatched);
 
-		if (this.options.samplesStorePath) {
-			this.off('client-sink-created', this.handleClientSinkCreated);
-		}
-
 		if (this.options.uploader) {
+			this.off('client-sink-created', this.handleClientSinkCreated);
 			this.off('client-added', this.handleClientAdded);
 			this.off('client-updated', this.handleClientUpdated);
-			this.off('call-summary', this.handleCallSummary);
+			this.off('call-closed', this.handleCallClosed);
 			this.off('mediasoup-router-removed', this.handleMediasoupRouterRemoved);
 		}
 

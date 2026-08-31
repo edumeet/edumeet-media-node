@@ -72,9 +72,13 @@ export class S3Uploader implements Uploader {
 	 * single client.
 	 */
 	private async ensureSdk(): Promise<S3Sdk> {
-		this.sdk ??= import('@aws-sdk/client-s3').then(({ S3Client: S3ClientCtor, PutObjectCommand }) => {
-			this.client = this.injectedClient ?? new S3ClientCtor(this.clientConfig);
+		this.sdk ??= Promise.resolve().then(() => {
+			// require() works in both the compiled CJS runtime and Jest without
+			// --experimental-vm-modules; dynamic import() does not.
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
+			const { S3Client: S3ClientCtor, PutObjectCommand } = require('@aws-sdk/client-s3') as S3Module;
 
+			this.client = this.injectedClient ?? new S3ClientCtor(this.clientConfig);
 			logger.debug('ensureSdk() aws sdk loaded [bucket: %s]', this.bucket);
 
 			return { client: this.client, PutObjectCommand };
