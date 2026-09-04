@@ -207,6 +207,27 @@ yarn start --ip <public-ip> \
   --samplesUploadUri "s3://samples/dev?endpoint=http://minio.minio-ns.svc.cluster.local:9000&credentialsEnv=MINIO"
 ```
 
+Any other S3-compatible provider, addressed by its own endpoint:
+
+```bash
+export STORAGE_ACCESS_KEY_ID=...
+export STORAGE_SECRET_ACCESS_KEY=...
+
+yarn start --ip <public-ip> \
+  --samplesStorePath /var/lib/edumeet/samples \
+  --samplesUploadUri "s3://edumeet-samples?endpoint=https://<region>.example-storage.com&region=<region>&pathStyle=false&credentialsEnv=STORAGE"
+```
+
+`pathStyle` is the part that is easy to miss. It defaults to `true` whenever an endpoint is set,
+which is what MinIO and Ceph want. Providers that serve virtual-host-style addresses need
+`pathStyle=false`, and the SDK then addresses the bucket as `https://<bucket>.<endpoint-host>` —
+so keep dots out of the bucket name, or a wildcard certificate will not match it. Set `region` to
+whatever the provider expects; many tie it to the endpoint's location.
+
+If uploads fail with `Unsupported header 'x-amz-checksum-crc32'`, the store does not accept the
+checksums recent AWS SDK versions send by default. Set `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`
+in the environment; the SDK reads it directly, so nothing here changes.
+
 HTTP collector with a bearer token, keeping local copies:
 
 ```bash
