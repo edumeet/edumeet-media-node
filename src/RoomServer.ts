@@ -12,11 +12,13 @@ import { createConsumerMiddleware } from './middlewares/consumerMiddleware';
 import { Logger, Middleware, skipIfClosed } from 'edumeet-common';
 import { createAudioObserverMiddleware } from './middlewares/audioObserverMiddleware';
 import { Router } from 'mediasoup/types';
+import { ObserverService } from './ObserverService';
 
 const logger = new Logger('RoomServer');
 
 export interface RoomServerOptions {
 	mediaService: MediaService;
+	observerService: ObserverService;
 	roomServerConnection: RoomServerConnection;
 	imageTag?: string;
 }
@@ -36,6 +38,7 @@ export default class RoomServer extends EventEmitter {
 
 	constructor({
 		mediaService,
+		observerService,
 		roomServerConnection,
 		imageTag
 	}: RoomServerOptions) {
@@ -50,6 +53,7 @@ export default class RoomServer extends EventEmitter {
 		const middlewareOptions = {
 			roomServer: this,
 			mediaService,
+			observerService,
 		} as MiddlewareOptions;
 
 		this.routerMiddleware = createRouterMiddleware(middlewareOptions);

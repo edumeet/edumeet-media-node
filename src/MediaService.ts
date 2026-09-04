@@ -4,7 +4,7 @@ import * as mediasoup from 'mediasoup';
 // import { MediasoupMonitor, createMediasoupMonitor, MediasoupMonitorConfig, TransportTypeFunction, MediasoupTransportType } from '@observertc/sfu-monitor-js';
 import { List, Logger, skipIfClosed } from 'edumeet-common';
 
-import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
+import { ActiveSpeakerObserver, AudioLevelObserver, Consumer, DataConsumer, DataProducer, DirectTransport, PipeTransport, Producer, Router, RtpHeaderExtension, Transport, TransportListenInfo, WebRtcServer, WebRtcTransport, Worker, WorkerLogLevel, WorkerLogTag } from 'mediasoup/types';
 
 const logger = new Logger('MediaService');
 
@@ -40,6 +40,13 @@ export interface RouterData {
 	pipeDataConsumers: Map<string, DataConsumer>;
 	activeSpeakerObservers: Map<string, ActiveSpeakerObserver>;
 	audioLevelObservers: Map<string, AudioLevelObserver>;
+
+	/**
+	 * Carries observertc sample data channels to the ObserverService. Created
+	 * lazily on the first `observertc-samples` DataProducer, so routers on nodes
+	 * without sample collection configured never pay for one.
+	 */
+	directTransport?: DirectTransport;
 	remoteClose?: boolean;
 }
 
@@ -256,7 +263,7 @@ export default class MediaService {
 			const resourses = await Promise.allSettled(
 				this.workers.items.map((w) => w.getResourceUsage())
 			);
-			
+
 			const usages: number[] = [];
 
 			resourses.forEach((result, index) => {
@@ -265,12 +272,12 @@ export default class MediaService {
 					const workerData = worker.appData as unknown as WorkerData;
 
 					/* eslint-disable camelcase */
-					const {	ru_utime: oldRuUtime, ru_stime: oldRuStime } = 
+					const {	ru_utime: oldRuUtime, ru_stime: oldRuStime } =
 						workerData.resourceUsage ?? { ru_utime: 0, ru_stime: 0 };
 					const { ru_utime: newRuUtime, ru_stime: newRuStime } = result.value;
 
 					workerData.cpuUsage = (
-						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) / 
+						(newRuUtime + newRuStime - oldRuUtime - oldRuStime) /
 						this.loadPollingInterval
 					) * 100;
 					/* eslint-enable camelcase */
@@ -286,7 +293,7 @@ export default class MediaService {
 
 	@skipIfClosed
 	private async getOrCreateRouterPromise(
-		roomId: string, 
+		roomId: string,
 		worker: Worker
 	): Promise<Router> {
 		logger.debug('getOrCreateRouter() [roomId: %s, workerPid: %s]', roomId, worker.pid);
@@ -484,23 +491,6 @@ export default class MediaService {
 	 *
 	 * 	const getTransportType: TransportTypeFunction = (transport) => {
 	 * 		return transport.constructor.name as MediasoupTransportType;
-	 * 	};
-	 *
-	 * 	const config: MediasoupMonitorConfig = {
-	 * 		collectingPeriodInMs: 5000,
-	 * 		samplingPeriodInMs: 30000,
-	 * 		mediasoup,
-	 * 		mediasoupCollectors: {
-	 * 			getTransportType,
-	 * 			pollDirectTransportStats: pollStats,
-	 * 			pollPlainRtpTransportStats: pollStats,
-	 * 			pollWebRtcTransportStats: pollStats,
-	 * 			pollPipeTransportStats: pollStats,
-	 * 			pollConsumerStats: pollStats,
-	 * 			pollProducerStats: pollStats,
-	 * 			pollDataProducerStats: pollStats,
-	 * 			pollDataConsumerStats: pollStats,
-	 * 		}
 	 * 	};
 	 *
 	 * 	return createMediasoupMonitor(config);
