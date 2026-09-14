@@ -240,18 +240,14 @@ export class ObserverService extends Observer {
 
 			const [ , callId, clientId ] = match;
 			const sourcePath = join(samplesStorePath, name);
-			const roomId = safeKeySegment(await this.readStagedRoomId(sourcePath), 'unknown-room');
-			const targetKey = `${roomId}/${callId}/${clientId}.jsonl`;
 
-			try {
-				await uploader.upload({ key: targetKey, sourcePath, contentType: 'application/x-ndjson' });
-
-				logger.info('leftover sample file uploaded [key: %s] from %s', targetKey, sourcePath);
-
-				if (uploader.deleteAfterUpload) await this.deleteUploadedFile(sourcePath, targetKey);
-			} catch (error) {
-				logger.error({ err: error }, 'prepareStore() leftover upload failed [key: %s]', targetKey);
-			}
+			await this.uploadClientFile(uploader, {
+				roomId: await this.readStagedRoomId(sourcePath),
+				callId,
+				clientId,
+				sourcePath,
+				leftover: true,
+			});
 		}
 	}
 
@@ -354,39 +350,52 @@ export class ObserverService extends Observer {
 		if (!sourcePath) return;
 
 		sink.once('close', async () => {
-			// The sink is closed, so the file is complete. Size is included because a
-			// 0-byte file is the tell-tale of a client that connected but never sent
-			// a sample, which otherwise looks identical to success.
-			const bytes = await stat(sourcePath)
-				.then((s) => s.size)
-				.catch(() => -1);
-
 			const { uploader } = this.options;
 
-			if (!uploader) return logger.info('sample file written [clientId: %s, bytes: %d, path: %s]', observedClient.clientId, bytes, sourcePath);
+			if (!uploader) return logger.info('sample file written [clientId: %s, path: %s]', observedClient.clientId, sourcePath);
 
 			const call = observedCall as ObservedCall<ObservedCallAppData>;
 			const sampleAttachments = observedClient.attachments as Record<string, unknown> | undefined;
-			const roomId = safeKeySegment(call.appData?.roomId ?? sampleAttachments?.['roomId'], 'unknown-room');
-			const targetKey = `${roomId}/${call.callId}/${observedClient.clientId}.jsonl`;
 
-			try {
-				await uploader.upload({
-					key: targetKey,
-					sourcePath,
-					contentType: 'application/x-ndjson',
-				});
-
-				logger.info('sample file uploaded [key: %s, bytes: %d] from %s, deletedAfterUpload: %s', targetKey, bytes, sourcePath, String(uploader.deleteAfterUpload));
-
-				if (uploader.deleteAfterUpload) {
-					await this.deleteUploadedFile(sourcePath, targetKey);
-				}
-			} catch (error) {
-				logger.error({ err: error }, 'handleClientSinkCreated() upload failed [key: %s]', targetKey);
-			}
+			await this.uploadClientFile(uploader, {
+				roomId: call.appData?.roomId ?? sampleAttachments?.['roomId'],
+				callId: call.callId,
+				clientId: observedClient.clientId,
+				sourcePath,
+			});
 		});
 	};
+
+	/**
+	 * One client file to storage, whether its sink has just closed or a previous
+	 * process left it behind. The size is logged because a 0-byte file is the
+	 * tell-tale of a client that connected but never sent a sample, which
+	 * otherwise looks identical to success.
+	 */
+	private async uploadClientFile(
+		uploader: Uploader,
+		file: { roomId: unknown, callId: string, clientId: string, sourcePath: string, leftover?: boolean },
+	): Promise<void> {
+		const roomId = safeKeySegment(file.roomId, 'unknown-room');
+		const targetKey = `${roomId}/${file.callId}/${file.clientId}.jsonl`;
+		const bytes = await stat(file.sourcePath)
+			.then((s) => s.size)
+			.catch(() => -1);
+
+		try {
+			await uploader.upload({ key: targetKey, sourcePath: file.sourcePath, contentType: 'application/x-ndjson' });
+
+			logger.info(
+				'%s uploaded [key: %s, bytes: %d] from %s, deletedAfterUpload: %s',
+				file.leftover ? 'leftover sample file' : 'sample file',
+				targetKey, bytes, file.sourcePath, String(uploader.deleteAfterUpload)
+			);
+
+			if (uploader.deleteAfterUpload) await this.deleteUploadedFile(file.sourcePath, targetKey);
+		} catch (error) {
+			logger.error({ err: error }, 'uploadClientFile() upload failed [key: %s]', targetKey);
+		}
+	}
 
 	private async deleteUploadedFile(path: string, key: string): Promise<void> {
 		try {
