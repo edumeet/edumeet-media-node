@@ -370,8 +370,9 @@ export const createProducerMiddleware = ({
 						}
 					});
 
-					// Hand observer-monitoring data producers to the ObserverService.
-					if (label === 'observertc-samples') {
+					// Hand observer-monitoring data producers to the ObserverService. A node
+					// with no store configured would only parse and discard them.
+					if (label === 'observertc-samples' && observerService.collectsSamples) {
 						// Created on demand: routers only get a DirectTransport once a client
 						// actually sends samples, so nodes without collection pay nothing.
 						routerData.directTransport ??= await router.createDirectTransport();

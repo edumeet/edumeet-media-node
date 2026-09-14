@@ -1,8 +1,11 @@
 import { Logger } from 'edumeet-common';
-import { stat, unlink } from 'fs/promises';
+import { mkdir, open, readdir, stat, unlink } from 'fs/promises';
+import { join } from 'path';
 import { DataConsumer } from 'mediasoup/types';
 import * as mediasoup from 'mediasoup';
 import {
+	AcceptContext,
+	ClientSample,
 	createDefaultMediasoupRemoteTrackResolverFactory,
 	createJsonlFileSinkFactory,
 	JsonlFileSink,
@@ -25,8 +28,11 @@ const logger = new Logger('ObserverService');
  */
 const SAFE_KEY_SEGMENT = /^[A-Za-z0-9._-]{1,128}$/;
 
+const isSafeKeySegment = (value: unknown): value is string =>
+	typeof value === 'string' && value !== '.' && value !== '..' && SAFE_KEY_SEGMENT.test(value);
+
 const safeKeySegment = (value: unknown, fallback: string): string => {
-	if (typeof value !== 'string' || value === '.' || value === '..' || !SAFE_KEY_SEGMENT.test(value)) {
+	if (!isSafeKeySegment(value)) {
 		if (value !== undefined) logger.warn('safeKeySegment() rejected unsafe segment [value: %s]', String(value));
 
 		return fallback;
@@ -34,6 +40,13 @@ const safeKeySegment = (value: unknown, fallback: string): string => {
 
 	return value;
 };
+
+/**
+ * A staged per-client file as `createJsonlFileSinkFactory` names it. Neither id
+ * can contain a separator once `accept()` has vetted it, so the first `__` is the
+ * boundary.
+ */
+const STAGED_FILE = /^([A-Za-z0-9._-]+?)__([A-Za-z0-9._-]+)\.jsonl$/;
 
 setObserverLogger({
 	debug: () => void 0,
@@ -178,6 +191,86 @@ export class ObserverService extends Observer {
 		return this.options.sfuId;
 	}
 
+	/** Whether samples are wanted at all; without a store there is nowhere for them to go. */
+	public get collectsSamples(): boolean {
+		return Boolean(this.options.samplesStorePath);
+	}
+
+	/**
+	 * `callId` and `clientId` come from the client and end up in file names and
+	 * upload keys, and the observer only checks that they are non-empty: a callId
+	 * of `/../x` writes outside the store directory. Anything that is not a plain
+	 * token is dropped before the observer sees it. Every id edumeet issues is a
+	 * UUID, so legitimate samples always pass.
+	 */
+	public override accept(sample: ClientSample, context?: AcceptContext): void {
+		if (!isSafeKeySegment(sample.callId) || !isSafeKeySegment(sample.clientId)) {
+			this.rejectedSamples++;
+			logger.debug('accept() rejected sample with unsafe ids [callId: %s, clientId: %s]', String(sample.callId), String(sample.clientId));
+
+			return;
+		}
+
+		super.accept(sample, context);
+	}
+
+	public rejectedSamples = 0;
+
+	/**
+	 * Get the store ready for this process and settle what the previous one left
+	 * behind. Files still in the store were written by clients of a process that
+	 * no longer exists (a crash before their sinks closed, an upload that failed,
+	 * or a shutdown that exited before its uploads finished), so they are complete
+	 * and safe to send. The room id is not in the file name; it is read from the
+	 * first sample in the file, the same attachment the live path uses.
+	 */
+	public async prepareStore(): Promise<void> {
+		const { samplesStorePath, uploader } = this.options;
+
+		if (!samplesStorePath) return;
+
+		await mkdir(samplesStorePath, { recursive: true });
+
+		if (!uploader) return;
+
+		for (const name of await readdir(samplesStorePath)) {
+			const match = STAGED_FILE.exec(name);
+
+			if (!match) continue;
+
+			const [ , callId, clientId ] = match;
+			const sourcePath = join(samplesStorePath, name);
+			const roomId = safeKeySegment(await this.readStagedRoomId(sourcePath), 'unknown-room');
+			const targetKey = `${roomId}/${callId}/${clientId}.jsonl`;
+
+			try {
+				await uploader.upload({ key: targetKey, sourcePath, contentType: 'application/x-ndjson' });
+
+				logger.info('leftover sample file uploaded [key: %s] from %s', targetKey, sourcePath);
+
+				if (uploader.deleteAfterUpload) await this.deleteUploadedFile(sourcePath, targetKey);
+			} catch (error) {
+				logger.error({ err: error }, 'prepareStore() leftover upload failed [key: %s]', targetKey);
+			}
+		}
+	}
+
+	private async readStagedRoomId(path: string): Promise<unknown> {
+		const handle = await open(path, 'r');
+
+		try {
+			const buffer = Buffer.alloc(64 * 1024);
+			const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+			const firstLine = buffer.toString('utf8', 0, bytesRead).split('\n', 1)[0];
+
+			return (JSON.parse(firstLine) as ClientSample).attachments?.['roomId'];
+		} catch {
+			return undefined;
+		} finally {
+			await handle.close();
+		}
+	}
+
 	/**
 	 * Register a mediasoup DataProducer that carries observer samples.
 	 * Called from producerMiddleware when label === 'observertc-samples'.
@@ -229,7 +322,11 @@ export class ObserverService extends Observer {
 	 * all rather than subscribe and bail out per event.
 	 */
 	private setupObserverEvents(): void {
-		// Diagnostics and observer wiring, worth having either way.
+		// A node that collects no samples must run exactly as it did before this
+		// service existed: no mediasoup hooks, no per-router bookkeeping. Nothing
+		// below can ever match a client without samples anyway.
+		if (!this.collectsSamples) return;
+
 		this.on('peer-connection-added', this.handlePeerConnectionAdded);
 		this.on('mediasoup-router-added', this.handleMediasoupRouterAdded);
 		this.on('mediasoup-router-matched-with-peer-connection', this.handleMediasoupRouterMatched);

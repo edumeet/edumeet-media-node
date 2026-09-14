@@ -174,6 +174,9 @@ export const cancelDrain = () => {
 		uploader: createUploader(samplesUploadUri),
 	});
 
+	observerService.prepareStore().catch((error) =>
+		logger.error({ err: error }, 'observertc sample store preparation failed'));
+
 	const mediaService = await MediaService.create({
 		ip,
 		ip6,

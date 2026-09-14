@@ -1,5 +1,6 @@
 import { JsonlFileSink } from '@observertc/observer-js';
-import { access, mkdtemp, writeFile } from 'fs/promises';
+import * as mediasoup from 'mediasoup';
+import { access, mkdir, mkdtemp, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { ObservedCallAppData, ObserverService } from '../../src/ObserverService';
@@ -356,5 +357,138 @@ describe('ObserverService - addDataConsumer', () => {
 
 		expect(() => dataConsumer.handlers.message(Buffer.from('not json'))).not.toThrow();
 		expect(() => dataConsumer.handlers.message('also not json')).not.toThrow();
+	});
+});
+
+describe('ObserverService - sample admission', () => {
+	const sample = (callId: unknown, clientId: unknown) => ({ callId, clientId, timestamp: Date.now(), peerConnections: [] });
+
+	test('accepts a sample whose ids are plain tokens', () => {
+		const svc = new ObserverService({});
+
+		svc.accept(sample('call-1', 'client-1') as never);
+
+		expect(svc.observedCalls.size).toBe(1);
+		expect(svc.rejectedSamples).toBe(0);
+		svc.close();
+	});
+
+	test.each([
+		[ '/../escaped', 'client-1' ],
+		[ 'call-1', '/../../escaped' ],
+		[ '..', 'client-1' ],
+		[ 'call 1', 'client-1' ],
+		[ 42, 'client-1' ],
+		[ 'call-1', undefined ],
+	])('drops a sample with callId %p and clientId %p before the observer sees it', (callId, clientId) => {
+		const svc = new ObserverService({});
+
+		svc.accept(sample(callId, clientId) as never);
+
+		expect(svc.observedCalls.size).toBe(0);
+		expect(svc.rejectedSamples).toBe(1);
+		svc.close();
+	});
+
+	test('a crafted callId no longer creates a file outside the store', async () => {
+		const parent = await mkdtemp(join(tmpdir(), 'observer-service-'));
+		const directory = join(parent, 'store');
+
+		await mkdir(directory);
+
+		const svc = new ObserverService({ samplesStorePath: directory });
+
+		svc.accept(sample('/../escaped', 'c') as never);
+		svc.accept(sample('call-1', 'c') as never);
+
+		expect(await until(async () => exists(join(directory, 'call-1__c.jsonl')))).toBe(true);
+		expect(await exists(join(parent, 'escaped__c.jsonl'))).toBe(false);
+		svc.close();
+	});
+
+	test('collectsSamples follows the store path', () => {
+		expect(new ObserverService({ samplesStorePath: tmpdir() }).collectsSamples).toBe(true);
+		expect(new ObserverService({}).collectsSamples).toBe(false);
+	});
+});
+
+describe('ObserverService - prepareStore', () => {
+	test('is a no-op without a store path', async () => {
+		await expect(new ObserverService({}).prepareStore()).resolves.toBeUndefined();
+	});
+
+	test('creates a missing store directory', async () => {
+		const directory = join(await mkdtemp(join(tmpdir(), 'observer-service-')), 'nested', 'store');
+
+		await new ObserverService({ samplesStorePath: directory }).prepareStore();
+
+		expect(await exists(directory)).toBe(true);
+	});
+
+	test('uploads leftover files under the room read from their first sample, then deletes them', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
+		const staged = join(directory, 'call-1__client-1.jsonl');
+		const firstSample = JSON.stringify({ callId: 'call-1', clientId: 'client-1', attachments: { roomId: 'room-9' } });
+
+		await writeFile(staged, `${firstSample}\n{"n":2}\n`);
+		await writeFile(join(directory, 'notes.txt'), 'keep me');
+
+		const { uploader, calls } = stubUploader(true);
+
+		await new ObserverService({ samplesStorePath: directory, uploader }).prepareStore();
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toMatchObject({ key: 'room-9/call-1/client-1.jsonl', sourcePath: staged, contentType: 'application/x-ndjson' });
+		expect(await exists(staged)).toBe(false);
+		expect(await exists(join(directory, 'notes.txt'))).toBe(true);
+	});
+
+	test('falls back to unknown-room without a readable first line, and keeps a file whose upload failed', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
+		const staged = join(directory, 'call-2__client-2.jsonl');
+
+		await writeFile(staged, 'not json\n');
+
+		const { uploader, calls } = stubUploader(true, true);
+
+		await new ObserverService({ samplesStorePath: directory, uploader }).prepareStore();
+
+		expect(calls[0]).toMatchObject({ key: 'unknown-room/call-2/client-2.jsonl' });
+		expect(await exists(staged)).toBe(true);
+	});
+
+	test('leaves files alone without an uploader', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
+		const staged = join(directory, 'call-3__client-3.jsonl');
+
+		await writeFile(staged, '{}\n');
+		await new ObserverService({ samplesStorePath: directory }).prepareStore();
+
+		expect(await exists(staged)).toBe(true);
+	});
+});
+
+describe('ObserverService - unconfigured node', () => {
+	test('touches nothing in mediasoup and keeps no listeners of its own', () => {
+		const before = mediasoup.observer.listenerCount('newworker');
+		const svc = new ObserverService({});
+
+		expect(mediasoup.observer.listenerCount('newworker')).toBe(before);
+		for (const event of [ 'peer-connection-added', 'mediasoup-router-added', 'mediasoup-router-matched-with-peer-connection', 'client-sink-created', 'call-closed' ] as const) {
+			expect(svc.listenerCount(event)).toBe(0);
+		}
+		expect(svc.collectsSamples).toBe(false);
+
+		svc.close();
+		expect(mediasoup.observer.listenerCount('newworker')).toBe(before);
+	});
+
+	test('hooks mediasoup only once a store is configured, and lets go on close', () => {
+		const before = mediasoup.observer.listenerCount('newworker');
+		const svc = new ObserverService({ samplesStorePath: tmpdir() });
+
+		expect(mediasoup.observer.listenerCount('newworker')).toBe(before + 1);
+		svc.close();
+		expect(mediasoup.observer.listenerCount('newworker')).toBe(before);
 	});
 });
