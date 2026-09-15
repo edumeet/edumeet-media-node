@@ -12,6 +12,7 @@ type S3Module = typeof import('@aws-sdk/client-s3');
 type S3Sdk = {
 	client: S3Client;
 	PutObjectCommand: S3Module['PutObjectCommand'];
+	HeadObjectCommand: S3Module['HeadObjectCommand'];
 };
 
 /**
@@ -76,12 +77,12 @@ export class S3Uploader implements Uploader {
 			// require() works in both the compiled CJS runtime and Jest without
 			// --experimental-vm-modules; dynamic import() does not.
 			// eslint-disable-next-line @typescript-eslint/no-require-imports
-			const { S3Client: S3ClientCtor, PutObjectCommand } = require('@aws-sdk/client-s3') as S3Module;
+			const { S3Client: S3ClientCtor, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3') as S3Module;
 
 			this.client = this.injectedClient ?? new S3ClientCtor(this.clientConfig);
 			logger.debug('ensureSdk() aws sdk loaded [bucket: %s]', this.bucket);
 
-			return { client: this.client, PutObjectCommand };
+			return { client: this.client, PutObjectCommand, HeadObjectCommand };
 		});
 
 		return this.sdk;
@@ -116,6 +117,20 @@ export class S3Uploader implements Uploader {
 			throw error;
 		} finally {
 			this.stats.ongoingUploads--;
+		}
+	}
+
+	public async head(key: string): Promise<{ size: number } | undefined> {
+		const { client, HeadObjectCommand } = await this.ensureSdk();
+
+		try {
+			const { ContentLength } = await client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: this.buildKey(key) }));
+
+			return { size: ContentLength ?? 0 };
+		} catch (error) {
+			if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) return undefined;
+
+			throw error;
 		}
 	}
 

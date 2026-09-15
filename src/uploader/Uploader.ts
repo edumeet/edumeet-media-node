@@ -44,6 +44,13 @@ export type Uploader = {
 	deleteAfterUpload: boolean;
 
 	upload(options: UploadOptions): Promise<void>;
+
+	/**
+	 * The size of the object already stored under `key`, or undefined when there
+	 * is none. Optional: a backend that cannot tell leaves it out, and callers
+	 * then write without checking.
+	 */
+	head?(key: string): Promise<{ size: number } | undefined>;
 }
 /* eslint-enable no-unused-vars */
 

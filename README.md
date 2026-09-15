@@ -39,7 +39,7 @@ them with mediasoup's own router samples, and turns the result into three kinds 
 | Artifact | When it is produced | Content type |
 | --- | --- | --- |
 | `<clientId>.jsonl` | an observed client leaves and its sink closes | `application/x-ndjson` |
-| `call-summary.json` | a call closes | `application/json` |
+| `call-summary-<sfuId>.json` | a call closes on this node | `application/json` |
 | `mediasoup-router-<routerId>.json` | a router is removed | `application/json` |
 
 Nothing is stored or uploaded unless you ask for it. With neither option set, samples are
@@ -153,17 +153,33 @@ At startup the resolved configuration is logged with credentials shown as a refe
 Keys are identical across S3 and HTTP targets:
 
 ```
-<roomId>/<callId>/<clientId>.jsonl
-<roomId>/<callId>/call-summary.json
-<roomId>/<callId>/mediasoup-router-<routerId>.json
+<tenantFqdn>/<roomId>/<callId>/<clientId>.jsonl
+<tenantFqdn>/<roomId>/<callId>/call-summary-<sfuId>.json
+<tenantFqdn>/<roomId>/<callId>/mediasoup-router-<routerId>.json
 ```
 
 For S3, a `keyPrefix` from the URI path is prepended. For HTTP, the key is appended to the base
-path, one POST per artifact.
+path, one POST per artifact. Below the tenant folder the layout is the one the ObserveRTC stats
+dashboard reads, so a dashboard pointed at `<tenantFqdn>/` shows that tenant.
 
-`roomId` arrives in a client-supplied sample attachment, so it is validated before use: it must
-match `[A-Za-z0-9._-]{1,128}` and may not be `.` or `..`. Anything else, including a room that was
-never reported, falls back to `unknown-room` and logs a warning. This keeps a hostile client from
+- `<tenantFqdn>` is the host name the client joined on, the same value the room server resolves
+  the tenant from. Every tenant's data sits under a folder of its own, so it can be listed,
+  given a lifecycle rule, or deleted on its own. Clients that do not send it yet file under
+  `unknown-tenant`. It is a label the client supplies: it cannot escape the key space, but a
+  client can name another tenant's host.
+- `<callId>` is the room session id the room server issues, a random UUID per room instance.
+  It is also the `roomId` of the router the samples channel was produced on, and a sample naming
+  any other call is dropped, so a client can only write into its own call.
+- Every node that carried part of a call writes its own `call-summary-<sfuId>.json`; the
+  dashboard merges them. `sfuId` defaults to the host name plus a random suffix.
+- A client that rejoins the same call finds its earlier file in place. Over S3 the node checks
+  first, and stores the new session as `<clientId>~<created ms>.jsonl` next to it; an object of
+  the same size is taken as already uploaded. HTTP targets are not checked.
+
+`tenantFqdn` and `roomId` arrive in client-supplied sample attachments, so they are validated
+before use: each must match `[A-Za-z0-9._-]{1,128}` and may not be `.` or `..`. Anything else,
+including a value that was never reported, falls back to `unknown-tenant` or `unknown-room` and
+logs a warning. This keeps a hostile client from
 polluting the key space or escaping the configured HTTP base path.
 
 ### Failure behaviour
@@ -172,8 +188,8 @@ polluting the key space or escaping the configured HTTP base path.
   problem and starts with uploads disabled.
 - `--samplesStorePath` passed without a value, or with a blank one, is treated the same way:
   sample storage is disabled with a warning, and any upload URI alongside it is discarded.
-- Upload failures are logged. The artifact is lost, calls are unaffected. There is no queue, no
-  spooling, and no replay after a restart.
+- Upload failures are logged and calls are unaffected. A per-client file whose upload failed
+  stays in the store and is uploaded at the next start; a call summary or router sample is lost.
 - HTTP retries network errors, `429` and `5xx` with exponential backoff up to `maxAttempts`, with
   a 30 second per-request timeout. Other `4xx` responses fail immediately, since retrying a
   rejected request will not help.

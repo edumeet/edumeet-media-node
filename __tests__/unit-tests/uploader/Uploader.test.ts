@@ -118,6 +118,36 @@ describe('S3Uploader', () => {
 	});
 });
 
+describe('S3Uploader - head', () => {
+	test('returns the size of an existing object under the prefixed key', async () => {
+		const { send, client } = stubClient();
+		const uploader = new S3Uploader(s3Config('s3://samples/prod'), client);
+
+		send.mockResolvedValueOnce({ ContentLength: 42 });
+
+		await expect(uploader.head('room/call/c.jsonl')).resolves.toEqual({ size: 42 });
+		expect(lastCommand(send).input).toMatchObject({ Bucket: 'samples', Key: 'prod/room/call/c.jsonl' });
+	});
+
+	test('returns undefined when there is no object', async () => {
+		const { send, client } = stubClient();
+		const uploader = new S3Uploader(s3Config('s3://samples'), client);
+
+		send.mockRejectedValueOnce(Object.assign(new Error('NotFound'), { $metadata: { httpStatusCode: 404 } }));
+
+		await expect(uploader.head('room/call/c.jsonl')).resolves.toBeUndefined();
+	});
+
+	test('propagates any other failure', async () => {
+		const { send, client } = stubClient();
+		const uploader = new S3Uploader(s3Config('s3://samples'), client);
+
+		send.mockRejectedValueOnce(Object.assign(new Error('Forbidden'), { $metadata: { httpStatusCode: 403 } }));
+
+		await expect(uploader.head('room/call/c.jsonl')).rejects.toThrow('Forbidden');
+	});
+});
+
 describe('S3Uploader - sourcePath', () => {
 	test('reads the file and uploads its contents under the prefixed key', async () => {
 		const { send, client } = stubClient();

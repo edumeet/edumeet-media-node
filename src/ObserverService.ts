@@ -1,6 +1,8 @@
 import { Logger } from 'edumeet-common';
 import { mkdir, open, readdir, stat, unlink } from 'fs/promises';
-import { join } from 'path';
+import { hostname } from 'os';
+import { basename, join } from 'path';
+import { format } from 'util';
 import { DataConsumer } from 'mediasoup/types';
 import * as mediasoup from 'mediasoup';
 import {
@@ -20,8 +22,8 @@ import { randomUUID } from 'crypto';
 const logger = new Logger('ObserverService');
 
 /**
- * `roomId` reaches us inside a client-supplied sample attachment, so it can
- * never be trusted as a key segment. `encodeURIComponent` does not escape `..`,
+ * `tenantFqdn` and `roomId` reach us inside client-supplied sample attachments,
+ * so they can never be trusted as key segments. `encodeURIComponent` does not escape `..`,
  * so an unchecked value would survive into `HttpUploader.buildUrl()` and let URL
  * normalisation move the POST outside the configured base path. Anything that
  * is not a plain, bounded token is replaced by the fallback.
@@ -31,9 +33,16 @@ const SAFE_KEY_SEGMENT = /^[A-Za-z0-9._-]{1,128}$/;
 const isSafeKeySegment = (value: unknown): value is string =>
 	typeof value === 'string' && value !== '.' && value !== '..' && SAFE_KEY_SEGMENT.test(value);
 
+/** A client-supplied value as it may appear in a log line: bounded, so one sample cannot bloat the log. */
+const forLog = (value: unknown): string => {
+	const text = String(value);
+
+	return text.length > 128 ? `${text.slice(0, 128)}...` : text;
+};
+
 const safeKeySegment = (value: unknown, fallback: string): string => {
 	if (!isSafeKeySegment(value)) {
-		if (value !== undefined) logger.warn('safeKeySegment() rejected unsafe segment [value: %s]', String(value));
+		if (value !== undefined) logger.warn('safeKeySegment() rejected unsafe segment [value: %s]', forLog(value));
 
 		return fallback;
 	}
@@ -41,22 +50,39 @@ const safeKeySegment = (value: unknown, fallback: string): string => {
 	return value;
 };
 
+type RoomLabels = { tenantFqdn?: unknown, roomId?: unknown };
+
 /**
- * A staged per-client file as `createJsonlFileSinkFactory` names it. Neither id
- * can contain a separator once `accept()` has vetted it, so the first `__` is the
- * boundary.
+ * `<tenantFqdn>/<roomId>`, the start of every key. `tenantFqdn` is the host name
+ * the client joined on, the same value the room server resolves the tenant from,
+ * so each tenant's data sits under a folder of its own.
  */
-const STAGED_FILE = /^([A-Za-z0-9._-]+?)__([A-Za-z0-9._-]+)\.jsonl$/;
+const roomPrefix = ({ tenantFqdn, roomId }: RoomLabels): string =>
+	`${safeKeySegment(tenantFqdn, 'unknown-tenant')}/${safeKeySegment(roomId, 'unknown-room')}`;
+
+/**
+ * A staged per-client file: `<callId>__<clientId>__<created ms>.jsonl`, the
+ * creation time absent in files from before it was added. Neither id can contain
+ * a separator once `accept()` has vetted it, so the first `__` is the boundary.
+ * The creation time keeps a rejoining client off the file of its previous
+ * session, which may still be uploading.
+ */
+const STAGED_FILE = /^([A-Za-z0-9._-]+?)__([A-Za-z0-9._-]+?)(?:__(\d+))?\.jsonl$/;
+
+/** The library logs as `(moduleName, message, ...details)`; pino would keep only the first string. */
+const forward = (level: 'debug' | 'warn' | 'error') =>
+	(moduleName: unknown, ...args: unknown[]) => logger[level](`${String(moduleName)}: ${format(...args)}`);
 
 setObserverLogger({
 	debug: () => void 0,
-	info: (...args) => logger.debug(...args),
-	warn: (...args) => logger.warn(...args),
-	error: (...args) => logger.error(...args),
+	info: forward('debug'),
+	warn: forward('warn'),
+	error: forward('error'),
 	trace: () => void 0,
 });
 
 export type ObservedCallAppData = {
+	tenantFqdn: string | undefined;
 	roomId: string | undefined;
 	clients: Record<string, {
 		displayName?: string,
@@ -69,6 +95,7 @@ export type ObserverServiceOptions = {
 	/**
 	 * The ID of the SFU this service is running in. This is used to tag samples with the SFU they came from, so that the observer can distinguish between samples
 	 * from different SFUs when multiple nodes are reporting to the same observer.
+	 * Each node writes its own call summary under it, so it must differ between nodes.
 	 */
 	sfuId: string;
 
@@ -132,7 +159,10 @@ export class ObserverService extends Observer {
 	 */
 	private static resolveOptions(input: ObserverServiceInput): ObserverServiceOptions {
 		const samplesStorePath = ObserverService.normalizeStorePath(input.samplesStorePath);
-		const sfuId = input.sfuId ?? randomUUID().substring(0, 8);
+		const host = hostname()
+			.replace(/[^A-Za-z0-9.-]+/g, '-')
+			.slice(0, 40);
+		const sfuId = input.sfuId ?? `${host ? `${host}-` : ''}${randomUUID().substring(0, 8)}`;
 		const options: ObserverServiceOptions = { ...input, samplesStorePath, sfuId };
 
 		if (options.uploader && !samplesStorePath) {
@@ -144,11 +174,8 @@ export class ObserverService extends Observer {
 		return options;
 	}
 
-	private static buildObserverConfig(options: ObserverServiceOptions): ConstructorParameters<typeof Observer>[0] {
+	private static buildObserverConfig(): ConstructorParameters<typeof Observer>[0] {
 		return {
-			createClientSink: options.samplesStorePath
-				? createJsonlFileSinkFactory({ directory: options.samplesStorePath })
-				: undefined,
 			closeCallIfEmptyForMs: 5 * 60 * 1000, // 5 minutes
 			closeClientIfIdleForMs: 1 * 60 * 1000, // 1 minute,
 			createRemoteTrackResolver: createDefaultMediasoupRemoteTrackResolverFactory(),
@@ -164,9 +191,16 @@ export class ObserverService extends Observer {
 	public constructor(input: ObserverServiceInput) {
 		const options = ObserverService.resolveOptions(input);
 
-		super(ObserverService.buildObserverConfig(options));
+		super(ObserverService.buildObserverConfig());
 
 		this.options = options;
+
+		if (options.samplesStorePath) {
+			this.config.createClientSink = createJsonlFileSinkFactory({
+				directory: options.samplesStorePath,
+				getFileName: ({ callId, clientId }) => `${callId}__${clientId}__${Date.now()}.jsonl`,
+			});
+		}
 
 		logger.debug('constructor()');
 
@@ -206,7 +240,7 @@ export class ObserverService extends Observer {
 	public override accept(sample: ClientSample, context?: AcceptContext): void {
 		if (!isSafeKeySegment(sample.callId) || !isSafeKeySegment(sample.clientId)) {
 			this.rejectedSamples++;
-			logger.debug('accept() rejected sample with unsafe ids [callId: %s, clientId: %s]', String(sample.callId), String(sample.clientId));
+			logger.debug('accept() rejected sample with unsafe ids [callId: %s, clientId: %s]', forLog(sample.callId), forLog(sample.clientId));
 
 			return;
 		}
@@ -221,8 +255,8 @@ export class ObserverService extends Observer {
 	 * behind. Files still in the store were written by clients of a process that
 	 * no longer exists (a crash before their sinks closed, an upload that failed,
 	 * or a shutdown that exited before its uploads finished), so they are complete
-	 * and safe to send. The room id is not in the file name; it is read from the
-	 * first sample in the file, the same attachment the live path uses.
+	 * and safe to send. The tenant and room are not in the file name; they are read
+	 * from the first sample in the file, the same attachments the live path uses.
 	 */
 	public async prepareStore(): Promise<void> {
 		const { samplesStorePath, uploader } = this.options;
@@ -242,7 +276,7 @@ export class ObserverService extends Observer {
 			const sourcePath = join(samplesStorePath, name);
 
 			await this.uploadClientFile(uploader, {
-				roomId: await this.readStagedRoomId(sourcePath),
+				...await this.readStagedLabels(sourcePath),
 				callId,
 				clientId,
 				sourcePath,
@@ -251,7 +285,7 @@ export class ObserverService extends Observer {
 		}
 	}
 
-	private async readStagedRoomId(path: string): Promise<unknown> {
+	private async readStagedLabels(path: string): Promise<RoomLabels> {
 		const handle = await open(path, 'r');
 
 		try {
@@ -259,9 +293,11 @@ export class ObserverService extends Observer {
 			const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
 			const firstLine = buffer.toString('utf8', 0, bytesRead).split('\n', 1)[0];
 
-			return (JSON.parse(firstLine) as ClientSample).attachments?.['roomId'];
+			const attachments = (JSON.parse(firstLine) as ClientSample).attachments;
+
+			return { tenantFqdn: attachments?.['tenantFqdn'], roomId: attachments?.['roomId'] };
 		} catch {
-			return undefined;
+			return {};
 		} finally {
 			await handle.close();
 		}
@@ -270,8 +306,13 @@ export class ObserverService extends Observer {
 	/**
 	 * Register a mediasoup DataProducer that carries observer samples.
 	 * Called from producerMiddleware when label === 'observertc-samples'.
+	 *
+	 * `callId` is the `roomId` of the router the channel was produced on. That is
+	 * the room session the room server put the sender in, and the only call id an
+	 * honest client reports, so a sample naming any other call is dropped: a
+	 * client can write into its own call, not invent one or reach another.
 	 */
-	public addDataConsumer(dataConsumer: DataConsumer): void {
+	public addDataConsumer(dataConsumer: DataConsumer, callId: string): void {
 		logger.debug('addDataConsumer() [id: %s]', dataConsumer.id);
 
 		const onMessage = (payload: Buffer | string) => {
@@ -280,7 +321,14 @@ export class ObserverService extends Observer {
 					? payload.toString('utf8')
 					: String(payload);
 
-				const sample = JSON.parse(text);
+				const sample = JSON.parse(text) as ClientSample | null;
+
+				if (sample?.callId !== callId) {
+					this.rejectedSamples++;
+					logger.debug('addDataConsumer() rejected sample for another call [dataConsumerId: %s, callId: %s]', dataConsumer.id, forLog(sample?.callId));
+
+					return;
+				}
 
 				this.accept(sample);
 			} catch (error) {
@@ -300,7 +348,8 @@ export class ObserverService extends Observer {
 
 	private createObservedCallAppData(): ObservedCallAppData {
 		return {
-			roomId: undefined, // populated from client sample attachments via 'client-updated'
+			tenantFqdn: undefined, // populated from client sample attachments via 'client-updated'
+			roomId: undefined,
 			clients: {},
 			routerIds: [],
 		};
@@ -358,6 +407,7 @@ export class ObserverService extends Observer {
 			const sampleAttachments = observedClient.attachments as Record<string, unknown> | undefined;
 
 			await this.uploadClientFile(uploader, {
+				tenantFqdn: call.appData?.tenantFqdn ?? sampleAttachments?.['tenantFqdn'],
 				roomId: call.appData?.roomId ?? sampleAttachments?.['roomId'],
 				callId: call.callId,
 				clientId: observedClient.clientId,
@@ -374,21 +424,44 @@ export class ObserverService extends Observer {
 	 */
 	private async uploadClientFile(
 		uploader: Uploader,
-		file: { roomId: unknown, callId: string, clientId: string, sourcePath: string, leftover?: boolean },
+		file: RoomLabels & { callId: string, clientId: string, sourcePath: string, leftover?: boolean },
 	): Promise<void> {
-		const roomId = safeKeySegment(file.roomId, 'unknown-room');
-		const targetKey = `${roomId}/${file.callId}/${file.clientId}.jsonl`;
-		const bytes = await stat(file.sourcePath)
-			.then((s) => s.size)
-			.catch(() => -1);
+		const stats = await stat(file.sourcePath).catch(() => undefined);
+
+		if (!stats) {
+			logger.warn('uploadClientFile() no sample file to upload, is the store writable? [path: %s]', file.sourcePath);
+
+			return;
+		}
+
+		const prefix = roomPrefix(file);
+		let targetKey = `${prefix}/${file.callId}/${file.clientId}.jsonl`;
 
 		try {
+			const stored = await uploader.head?.(targetKey);
+
+			if (stored?.size === stats.size) {
+				logger.info('sample file already uploaded [key: %s] from %s', targetKey, file.sourcePath);
+
+				if (uploader.deleteAfterUpload) await this.deleteUploadedFile(file.sourcePath, targetKey);
+
+				return;
+			}
+
+			// The key is taken by an earlier session of the same client, on this node
+			// or another one, so this session goes next to it rather than over it.
+			if (stored) {
+				const created = STAGED_FILE.exec(basename(file.sourcePath))?.[3] ?? String(Math.round(stats.mtimeMs));
+
+				targetKey = `${prefix}/${file.callId}/${file.clientId}~${created}.jsonl`;
+			}
+
 			await uploader.upload({ key: targetKey, sourcePath: file.sourcePath, contentType: 'application/x-ndjson' });
 
 			logger.info(
 				'%s uploaded [key: %s, bytes: %d] from %s, deletedAfterUpload: %s',
 				file.leftover ? 'leftover sample file' : 'sample file',
-				targetKey, bytes, file.sourcePath, String(uploader.deleteAfterUpload)
+				targetKey, stats.size, file.sourcePath, String(uploader.deleteAfterUpload)
 			);
 
 			if (uploader.deleteAfterUpload) await this.deleteUploadedFile(file.sourcePath, targetKey);
@@ -414,15 +487,19 @@ export class ObserverService extends Observer {
 		};
 	};
 
-	/** Lift roomId and displayName out of client sample attachments onto the call. */
+	/** Lift tenantFqdn, roomId and displayName out of client sample attachments onto the call. */
 	private handleClientUpdated = ({ observedClient }: EventScope<'client-updated'>): void => {
 		const observedCall = observedClient.call as ObservedCall<ObservedCallAppData>;
+
+		if (observedCall.appData && !observedCall.appData.tenantFqdn && observedClient.attachments?.tenantFqdn) {
+			observedCall.appData.tenantFqdn = observedClient.attachments.tenantFqdn as string;
+		}
 
 		if (!observedCall.appData?.roomId && observedClient.attachments?.roomId) {
 
 			observedCall.appData.roomId = observedClient.attachments.roomId as string;
 
-			logger.debug('handleClientUpdated() set roomId [callId: %s, roomId: %s]', observedClient.call.callId, observedCall.appData.roomId);
+			logger.debug('handleClientUpdated() set roomId [callId: %s, roomId: %s]', observedClient.call.callId, forLog(observedCall.appData.roomId));
 		}
 
 		// `client-added` may never have been seen for this client, in which case the
@@ -449,15 +526,27 @@ export class ObserverService extends Observer {
 		if (!uploader || !observedCall.appData) return;
 
 		try {
-			const callRoomId = safeKeySegment(observedCall.appData.roomId, 'unknown-room');
-			const targetKey = `${callRoomId}/${observedCall.callId}/call-summary.json`;
+			const { appData } = observedCall;
+
+			// Every node that carried part of the call writes its own summary; the
+			// dashboard merges the `call-summary-<sfuId>.json` files of a call.
+			const targetKey = `${roomPrefix(appData)}/${observedCall.callId}/call-summary-${this.sfuId}.json`;
+			const summary = observedCall.summary ?? { callId: observedCall.callId, attachments: {} };
 
 			const body = JSON.stringify({
-				...observedCall.appData,
-				roomId: observedCall.appData.roomId,
-				numberOfIssues: observedCall.numberOfIssues,
-				clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
+				...summary,
+				roomId: appData.roomId,
 				sfuId: this.sfuId,
+				attachments: {
+					...summary.attachments,
+					tenantFqdn: appData.tenantFqdn,
+					roomId: appData.roomId,
+					clients: appData.clients,
+					routerIds: appData.routerIds,
+					numberOfClientIssues: observedCall.numberOfIssues,
+					clientsUsedTurn: [ ...observedCall.clientsUsedTurn ],
+					sfuId: this.sfuId,
+				},
 			});
 
 			await uploader.upload({
@@ -531,8 +620,7 @@ export class ObserverService extends Observer {
 
 		try {
 			const sample = JSON.stringify(observedMediasoupRouter.sample);
-			const roomId = safeKeySegment(observedCall.appData.roomId, 'unknown-room');
-			const targetKey = `${roomId}/${observedCall.callId}/mediasoup-router-${observedMediasoupRouter.router.id}.json`;
+			const targetKey = `${roomPrefix(observedCall.appData)}/${observedCall.callId}/mediasoup-router-${observedMediasoupRouter.router.id}.json`;
 
 			await uploader.upload({
 				key: targetKey,

@@ -1,12 +1,12 @@
 import { JsonlFileSink } from '@observertc/observer-js';
 import * as mediasoup from 'mediasoup';
-import { access, mkdir, mkdtemp, writeFile } from 'fs/promises';
+import { access, mkdir, mkdtemp, readdir, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { ObservedCallAppData, ObserverService } from '../../src/ObserverService';
 import { Uploader, UploadOptions } from '../../src/uploader/Uploader';
 
-const stubUploader = (deleteAfterUpload: boolean, fail = false) => {
+const stubUploader = (deleteAfterUpload: boolean, fail = false, stored?: Record<string, number>) => {
 	const calls: UploadOptions[] = [];
 	const uploader: Uploader = {
 		deleteAfterUpload,
@@ -15,6 +15,7 @@ const stubUploader = (deleteAfterUpload: boolean, fail = false) => {
 
 			if (fail) throw new Error('upload boom');
 		},
+		...(stored && { head: async (key: string) => (key in stored ? { size: stored[key] } : undefined) }),
 	};
 
 	return { uploader, calls };
@@ -44,9 +45,9 @@ const exists = async (path: string): Promise<boolean> => {
 };
 
 /** Drive one client sink through create -> close, as the observer would. */
-const runSinkLifecycle = async (uploader: Uploader) => {
+const runSinkLifecycle = async (uploader: Uploader, appData: Partial<ObservedCallAppData> = { tenantFqdn: 'rooms.example.org', roomId: 'room-1' }, fileName = 'client.jsonl') => {
 	const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
-	const sourcePath = join(directory, 'client.jsonl');
+	const sourcePath = join(directory, fileName);
 
 	await writeFile(sourcePath, '{"n":1}\n');
 
@@ -54,7 +55,7 @@ const runSinkLifecycle = async (uploader: Uploader) => {
 	const sink = new JsonlFileSink({ path: sourcePath });
 	const scope = {
 		sink,
-		observedCall: { callId: 'call-1', appData: { roomId: 'room-1' } },
+		observedCall: { callId: 'call-1', appData },
 		observedClient: { clientId: 'client-1', attachments: {} },
 	};
 
@@ -135,10 +136,44 @@ describe('ObserverService - staged file cleanup', () => {
 
 		expect(await until(async () => calls.length > 0)).toBe(true);
 		expect(calls[0]).toMatchObject({
-			key: 'room-1/call-1/client-1.jsonl',
+			key: 'rooms.example.org/room-1/call-1/client-1.jsonl',
 			sourcePath,
 			contentType: 'application/x-ndjson',
 		});
+	});
+
+	test('a key taken by an earlier session of the client gets a suffix from the file creation time', async () => {
+		const { uploader, calls } = stubUploader(false, false, { 'rooms.example.org/room-1/call-1/client-1.jsonl': 999 });
+
+		await runSinkLifecycle(uploader, undefined, 'call-1__client-1__1700000000000.jsonl');
+
+		expect(await until(async () => calls.length > 0)).toBe(true);
+		expect(calls[0].key).toBe('rooms.example.org/room-1/call-1/client-1~1700000000000.jsonl');
+	});
+
+	test('a file already stored with the same size is not uploaded again, only cleaned up', async () => {
+		const { uploader, calls } = stubUploader(true, false, { 'rooms.example.org/room-1/call-1/client-1.jsonl': 8 });
+		const { sourcePath } = await runSinkLifecycle(uploader);
+
+		expect(await until(async () => !(await exists(sourcePath)))).toBe(true);
+		expect(calls).toHaveLength(0);
+	});
+
+	test('a sink whose file was never created uploads nothing', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
+		const { uploader, calls } = stubUploader(false);
+		const service = new ObserverService({ samplesStorePath: directory, uploader });
+		const sink = new JsonlFileSink({ path: join(directory, 'missing', 'client.jsonl') });
+
+		sink.on('error', () => void 0);
+		service.emit('client-sink-created', {
+			sink,
+			observedCall: { callId: 'call-1', appData: { roomId: 'room-1' } },
+			observedClient: { clientId: 'client-1', attachments: {} },
+		} as never);
+
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		expect(calls).toHaveLength(0);
 	});
 
 	test('deletes the file when the uploader asks for it', async () => {
@@ -182,7 +217,7 @@ const callScope = (overrides: Partial<CallScope> = {}): CallScope => ({
 	callId: 'call-1',
 	numberOfIssues: 2,
 	clientsUsedTurn: new Set([ 'client-1' ]),
-	appData: { roomId: 'room-1', clients: {}, routerIds: [] },
+	appData: { tenantFqdn: 'rooms.example.org', roomId: 'room-1', clients: {}, routerIds: [] },
 	...overrides,
 });
 
@@ -198,17 +233,18 @@ describe('ObserverService - appData bookkeeping', () => {
 		expect(observedCall.appData.clients).toHaveProperty('client-1');
 	});
 
-	test('client-updated lifts roomId and displayName off the attachments', () => {
+	test('client-updated lifts tenantFqdn, roomId and displayName off the attachments', () => {
 		const svc = service();
-		const observedCall = callScope({ appData: { roomId: undefined, clients: { 'client-1': {} }, routerIds: [] } });
+		const observedCall = callScope({ appData: { tenantFqdn: undefined, roomId: undefined, clients: { 'client-1': {} }, routerIds: [] } });
 		const observedClient = {
 			clientId: 'client-1',
 			call: observedCall,
-			attachments: { roomId: 'room-9', displayName: 'Ada' },
+			attachments: { tenantFqdn: 'b.example.org', roomId: 'room-9', displayName: 'Ada' },
 		};
 
 		svc.emit('client-updated', { observedClient } as never);
 
+		expect(observedCall.appData.tenantFqdn).toBe('b.example.org');
 		expect(observedCall.appData.roomId).toBe('room-9');
 		expect(observedCall.appData.clients['client-1']).toEqual({ displayName: 'Ada' });
 	});
@@ -247,30 +283,70 @@ describe('ObserverService - appData bookkeeping', () => {
 });
 
 describe('ObserverService - summary and router uploads', () => {
-	test('call-closed uploads the summary with issues and turn usage', async () => {
+	const closeCall = async (sfuId: string, observedCall: CallScope & { summary?: unknown }) => {
 		const { uploader, calls } = stubUploader(false);
-		const svc = new ObserverService({ samplesStorePath: tmpdir(), uploader });
+		const svc = new ObserverService({ samplesStorePath: tmpdir(), uploader, sfuId });
 
-		svc.emit('call-closed', { observedCall: callScope() } as never);
+		svc.emit('call-closed', { observedCall } as never);
 
 		expect(await until(async () => calls.length > 0)).toBe(true);
-		expect(calls[0].key).toBe('room-1/call-1/call-summary.json');
-		expect(calls[0].contentType).toBe('application/json');
-		expect(JSON.parse(String(calls[0].body))).toMatchObject({
+
+		return calls[0];
+	};
+
+	test('call-closed uploads this node\'s summary with the library summary and the call attachments', async () => {
+		const upload = await closeCall('sfu-a', {
+			...callScope({ appData: { tenantFqdn: 'rooms.example.org', roomId: 'room-1', clients: { 'client-1': { displayName: 'Ada' } }, routerIds: [ 'router-1' ] } }),
+			summary: { callId: 'call-1', attachments: {}, scores: { samples: 3 }, issues: [] },
+		});
+
+		expect(upload.key).toBe('rooms.example.org/room-1/call-1/call-summary-sfu-a.json');
+		expect(upload.contentType).toBe('application/json');
+		expect(JSON.parse(String(upload.body))).toEqual({
+			callId: 'call-1',
 			roomId: 'room-1',
-			numberOfIssues: 2,
-			clientsUsedTurn: [ 'client-1' ],
+			sfuId: 'sfu-a',
+			scores: { samples: 3 },
+			issues: [],
+			attachments: {
+				tenantFqdn: 'rooms.example.org',
+				roomId: 'room-1',
+				clients: { 'client-1': { displayName: 'Ada' } },
+				routerIds: [ 'router-1' ],
+				numberOfClientIssues: 2,
+				clientsUsedTurn: [ 'client-1' ],
+				sfuId: 'sfu-a',
+			},
 		});
 	});
 
-	test('call-closed falls back to unknown-room', async () => {
-		const { uploader, calls } = stubUploader(false);
-		const svc = new ObserverService({ samplesStorePath: tmpdir(), uploader });
+	test('one call on two nodes gives two summaries', async () => {
+		const keys = [ (await closeCall('sfu-a', callScope())).key, (await closeCall('sfu-b', callScope())).key ];
 
-		svc.emit('call-closed', { observedCall: callScope({ appData: { roomId: undefined, clients: {}, routerIds: [] } }) } as never);
+		expect(keys).toEqual([ 'rooms.example.org/room-1/call-1/call-summary-sfu-a.json', 'rooms.example.org/room-1/call-1/call-summary-sfu-b.json' ]);
+	});
 
-		expect(await until(async () => calls.length > 0)).toBe(true);
-		expect(calls[0].key).toBe('unknown-room/call-1/call-summary.json');
+	test('the same room name in two tenants lands in two tenant folders', async () => {
+		const other = callScope({ appData: { tenantFqdn: 'b.example.org', roomId: 'room-1', clients: {}, routerIds: [] } });
+
+		expect((await closeCall('sfu-a', callScope())).key).toBe('rooms.example.org/room-1/call-1/call-summary-sfu-a.json');
+		expect((await closeCall('sfu-a', other)).key).toBe('b.example.org/room-1/call-1/call-summary-sfu-a.json');
+	});
+
+	test('call-closed falls back to unknown-tenant and unknown-room', async () => {
+		const upload = await closeCall('sfu-a', callScope({ appData: { tenantFqdn: undefined, roomId: undefined, clients: {}, routerIds: [] } }));
+
+		expect(upload.key).toBe('unknown-tenant/unknown-room/call-1/call-summary-sfu-a.json');
+	});
+
+	test('an unsafe tenantFqdn never becomes a key segment', async () => {
+		const upload = await closeCall('sfu-a', callScope({ appData: { tenantFqdn: '../other', roomId: 'room-1', clients: {}, routerIds: [] } }));
+
+		expect(upload.key).toBe('unknown-tenant/room-1/call-1/call-summary-sfu-a.json');
+	});
+
+	test('the default sfuId differs between services', () => {
+		expect(new ObserverService({}).options.sfuId).not.toBe(new ObserverService({}).options.sfuId);
 	});
 
 	test('router-removed uploads the router sample', async () => {
@@ -286,7 +362,7 @@ describe('ObserverService - summary and router uploads', () => {
 		} as never);
 
 		expect(await until(async () => calls.length > 0)).toBe(true);
-		expect(calls[0].key).toBe('room-1/call-1/mediasoup-router-router-1.json');
+		expect(calls[0].key).toBe('rooms.example.org/room-1/call-1/mediasoup-router-router-1.json');
 		expect(JSON.parse(String(calls[0].body))).toEqual({ some: 'stats' });
 	});
 
@@ -339,7 +415,7 @@ describe('ObserverService - addDataConsumer', () => {
 		const svc = new ObserverService({});
 		const dataConsumer = fakeDataConsumer();
 
-		svc.addDataConsumer(dataConsumer as never);
+		svc.addDataConsumer(dataConsumer as never, 'call-1');
 
 		expect(dataConsumer.on).toHaveBeenCalledWith('message', expect.any(Function));
 		expect(dataConsumer.observer.once).toHaveBeenCalledWith('close', expect.any(Function));
@@ -353,10 +429,31 @@ describe('ObserverService - addDataConsumer', () => {
 		const svc = new ObserverService({});
 		const dataConsumer = fakeDataConsumer();
 
-		svc.addDataConsumer(dataConsumer as never);
+		svc.addDataConsumer(dataConsumer as never, 'call-1');
 
 		expect(() => dataConsumer.handlers.message(Buffer.from('not json'))).not.toThrow();
 		expect(() => dataConsumer.handlers.message('also not json')).not.toThrow();
+		expect(() => dataConsumer.handlers.message('null')).not.toThrow();
+		expect(() => dataConsumer.handlers.message('42')).not.toThrow();
+		svc.close();
+	});
+
+	test('accepts samples for the call of its router and drops samples naming any other call', () => {
+		const svc = new ObserverService({});
+		const dataConsumer = fakeDataConsumer();
+		const message = (callId: unknown) => JSON.stringify({ callId, clientId: 'client-1', timestamp: Date.now(), peerConnections: [] });
+
+		svc.addDataConsumer(dataConsumer as never, 'call-1');
+
+		dataConsumer.handlers.message(message('call-2'));
+		dataConsumer.handlers.message(message(undefined));
+		expect(svc.observedCalls.size).toBe(0);
+		expect(svc.rejectedSamples).toBe(2);
+
+		dataConsumer.handlers.message(Buffer.from(message('call-1')));
+		expect([ ...svc.observedCalls.keys() ]).toEqual([ 'call-1' ]);
+		expect(svc.rejectedSamples).toBe(2);
+		svc.close();
 	});
 });
 
@@ -401,8 +498,8 @@ describe('ObserverService - sample admission', () => {
 		svc.accept(sample('/../escaped', 'c') as never);
 		svc.accept(sample('call-1', 'c') as never);
 
-		expect(await until(async () => exists(join(directory, 'call-1__c.jsonl')))).toBe(true);
-		expect(await exists(join(parent, 'escaped__c.jsonl'))).toBe(false);
+		expect(await until(async () => (await readdir(directory)).some((name) => name.startsWith('call-1__c__')))).toBe(true);
+		expect((await readdir(parent)).filter((name) => name !== 'store')).toEqual([]);
 		svc.close();
 	});
 
@@ -425,10 +522,23 @@ describe('ObserverService - prepareStore', () => {
 		expect(await exists(directory)).toBe(true);
 	});
 
+	test('uploads leftover files, named with or without a creation time, under the room read from their first sample', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
+
+		await writeFile(join(directory, 'call-1__client-1__1700000000000.jsonl'), `${JSON.stringify({ attachments: { tenantFqdn: 'rooms.example.org', roomId: 'room-1' } })}\n`);
+		await writeFile(join(directory, 'call-2__client-2.jsonl'), `${JSON.stringify({ attachments: { tenantFqdn: 'rooms.example.org', roomId: 'room-2' } })}\n`);
+
+		const { uploader, calls } = stubUploader(true);
+
+		await new ObserverService({ samplesStorePath: directory, uploader }).prepareStore();
+
+		expect(calls.map((call) => call.key).sort()).toEqual([ 'rooms.example.org/room-1/call-1/client-1.jsonl', 'rooms.example.org/room-2/call-2/client-2.jsonl' ]);
+	});
+
 	test('uploads leftover files under the room read from their first sample, then deletes them', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
 		const staged = join(directory, 'call-1__client-1.jsonl');
-		const firstSample = JSON.stringify({ callId: 'call-1', clientId: 'client-1', attachments: { roomId: 'room-9' } });
+		const firstSample = JSON.stringify({ callId: 'call-1', clientId: 'client-1', attachments: { tenantFqdn: 'rooms.example.org', roomId: 'room-9' } });
 
 		await writeFile(staged, `${firstSample}\n{"n":2}\n`);
 		await writeFile(join(directory, 'notes.txt'), 'keep me');
@@ -438,12 +548,12 @@ describe('ObserverService - prepareStore', () => {
 		await new ObserverService({ samplesStorePath: directory, uploader }).prepareStore();
 
 		expect(calls).toHaveLength(1);
-		expect(calls[0]).toMatchObject({ key: 'room-9/call-1/client-1.jsonl', sourcePath: staged, contentType: 'application/x-ndjson' });
+		expect(calls[0]).toMatchObject({ key: 'rooms.example.org/room-9/call-1/client-1.jsonl', sourcePath: staged, contentType: 'application/x-ndjson' });
 		expect(await exists(staged)).toBe(false);
 		expect(await exists(join(directory, 'notes.txt'))).toBe(true);
 	});
 
-	test('falls back to unknown-room without a readable first line, and keeps a file whose upload failed', async () => {
+	test('falls back to unknown-tenant and unknown-room without a readable first line, and keeps a file whose upload failed', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'observer-service-'));
 		const staged = join(directory, 'call-2__client-2.jsonl');
 
@@ -453,7 +563,7 @@ describe('ObserverService - prepareStore', () => {
 
 		await new ObserverService({ samplesStorePath: directory, uploader }).prepareStore();
 
-		expect(calls[0]).toMatchObject({ key: 'unknown-room/call-2/client-2.jsonl' });
+		expect(calls[0]).toMatchObject({ key: 'unknown-tenant/unknown-room/call-2/client-2.jsonl' });
 		expect(await exists(staged)).toBe(true);
 	});
 

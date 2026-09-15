@@ -21,6 +21,7 @@ const setup = (observerService: ObserverService) => {
 	const router = new RouterMock(undefined, transport) as unknown as Router & { createDirectTransport: jest.Mock };
 
 	router.createDirectTransport = jest.fn(async () => ({ consumeData: async () => dataConsumer }));
+	(router.appData as unknown as { roomId: string }).roomId = 'session-1';
 
 	const roomServer = new RoomServerMock() as unknown as RoomServer;
 
@@ -59,7 +60,7 @@ describe('producerMiddleware - observertc-samples data producers', () => {
 
 		expect(context.response.id).toBe('dp-1');
 		expect(router.createDirectTransport).toHaveBeenCalledTimes(1);
-		expect(addDataConsumer).toHaveBeenCalledWith(dataConsumer);
+		expect(addDataConsumer).toHaveBeenCalledWith(dataConsumer, 'session-1');
 		observerService.close();
 	});
 });
