@@ -156,7 +156,7 @@ export default class MediaService {
 		this.workers.remove(worker);
 
 		(async () => await this.startWorker(settings))().catch((error) => {
-			logger.error('workerDied() error restarting [error: %o]', error);
+			logger.error({ err: error }, 'workerDied() error restarting');
 		});
 	}
 
@@ -285,7 +285,7 @@ export default class MediaService {
 
 					usages.push(workerData.cpuUsage);
 				} else {
-					logger.error('startWorkers() error getting worker resource usage [error: %o]', result.reason);
+					logger.error({ err: result.reason }, 'startWorkers() error getting worker resource usage');
 				}
 			});
 		}, this.loadPollingInterval);
@@ -387,7 +387,17 @@ export default class MediaService {
 				}
 			})();
 
-			workerData.routersByRoomId.set(roomId, routerPromise);
+			const pendingRouter = routerPromise;
+
+			workerData.routersByRoomId.set(roomId, pendingRouter);
+
+			// Only a router 'close' removes the entry, and a failed creation has no router to close.
+			// Left cached, the rejection would be returned to every later getRouter() for this room on
+			// this node, and it survives a worker restart because the new worker reuses the same appData.
+			pendingRouter.catch(() => {
+				if (workerData.routersByRoomId.get(roomId) === pendingRouter)
+					workerData.routersByRoomId.delete(roomId);
+			});
 		}
 
 		return routerPromise;

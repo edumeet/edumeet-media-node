@@ -92,7 +92,7 @@ export class RoomServerConnection extends EventEmitter {
 				if (!context.handled)
 					throw new Error(`no middleware handled the notification [method: ${notification.method}]`);
 			} catch (error) {
-				logger.error({ err: error }, 'notification() [error: %o]');
+				logger.error({ err: error }, 'notification() failed');
 			}
 		});
 
@@ -116,7 +116,7 @@ export class RoomServerConnection extends EventEmitter {
 					reject('Server error');
 				}
 			} catch (error) {
-				logger.error({ err: error }, 'request() [error: %o]');
+				logger.error({ err: error }, 'request() failed');
 
 				reject('Server error');
 			}
@@ -136,7 +136,7 @@ export class RoomServerConnection extends EventEmitter {
 		try {
 			this.connection.notify(notification);
 		} catch (error) {
-			logger.error({ err: error }, 'notify() [error: %o]');
+			logger.error({ err: error }, 'notify() failed');
 		}
 	}
 
@@ -151,7 +151,7 @@ export class RoomServerConnection extends EventEmitter {
 		try {
 			return await this.connection.request(request);
 		} catch (error) {
-			logger.error({ err: error }, 'request() [error: %o]');
+			logger.error({ err: error }, 'request() failed');
 		}
 	}
 

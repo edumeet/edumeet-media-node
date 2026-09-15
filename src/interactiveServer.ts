@@ -615,7 +615,7 @@ export const interactiveServer = (
 			fs.unlinkSync(SOCKET_PATH);
 		}
 	} catch (error) {
-		logger.error({ err: error }, 'interactiveServer() [error: %o]');
+		logger.error({ err: error }, 'interactiveServer() failed');
 	}
 
 	server.listen(SOCKET_PATH, () => {

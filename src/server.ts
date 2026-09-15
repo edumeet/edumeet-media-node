@@ -191,7 +191,7 @@ export const cancelDrain = () => {
 		loadPollingInterval,
 		cpuPercentCascadingLimit,
 	}).catch((error) => {
-		logger.error({ error }, 'MediaService creation failed');
+		logger.error({ err: error }, 'MediaService creation failed');
 
 		return process.exit(1);
 	});
