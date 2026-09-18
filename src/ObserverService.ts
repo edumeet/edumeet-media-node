@@ -22,8 +22,9 @@ import { randomUUID } from 'crypto';
 const logger = new Logger('ObserverService');
 
 /**
- * `tenantFqdn` and `roomId` reach us inside client-supplied sample attachments,
- * so they can never be trusted as key segments. `encodeURIComponent` does not escape `..`,
+ * `tenantFqdn` and `roomId` come from the room server, which has the first from
+ * the URL a client connected with and the second from a name people choose, so
+ * they can never be trusted as key segments. `encodeURIComponent` does not escape `..`,
  * so an unchecked value would survive into `HttpUploader.buildUrl()` and let URL
  * normalisation move the POST outside the configured base path. Anything that
  * is not a plain, bounded token is replaced by the fallback.
@@ -311,8 +312,13 @@ export class ObserverService extends Observer {
 	 * the room session the room server put the sender in, and the only call id an
 	 * honest client reports, so a sample naming any other call is dropped: a
 	 * client can write into its own call, not invent one or reach another.
+	 *
+	 * `labels` is where the room server wants the call filed. They replace
+	 * whatever the sample says about tenant and room, so a client cannot choose
+	 * its folder, and everything downstream keeps reading the attachments. A room
+	 * server that names no room gets the call filed under its id.
 	 */
-	public addDataConsumer(dataConsumer: DataConsumer, callId: string): void {
+	public addDataConsumer(dataConsumer: DataConsumer, callId: string, labels: RoomLabels = {}): void {
 		logger.debug('addDataConsumer() [id: %s]', dataConsumer.id);
 
 		const onMessage = (payload: Buffer | string) => {
@@ -329,6 +335,14 @@ export class ObserverService extends Observer {
 
 					return;
 				}
+
+				const claimed = sample.attachments;
+
+				sample.attachments = {
+					...(claimed && typeof claimed === 'object' && !Array.isArray(claimed) ? claimed : {}),
+					tenantFqdn: labels.tenantFqdn,
+					roomId: labels.roomId ?? callId,
+				};
 
 				this.accept(sample);
 			} catch (error) {

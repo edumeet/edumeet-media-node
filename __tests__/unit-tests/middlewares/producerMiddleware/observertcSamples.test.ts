@@ -60,7 +60,7 @@ describe('producerMiddleware - observertc-samples data producers', () => {
 
 		expect(context.response.id).toBe('dp-1');
 		expect(router.createDirectTransport).toHaveBeenCalledTimes(1);
-		expect(addDataConsumer).toHaveBeenCalledWith(dataConsumer, 'session-1');
+		expect(addDataConsumer).toHaveBeenCalledWith(dataConsumer, 'session-1', { tenantFqdn: undefined, roomId: undefined });
 		observerService.close();
 	});
 });

@@ -162,11 +162,13 @@ For S3, a `keyPrefix` from the URI path is prepended. For HTTP, the key is appen
 path, one POST per artifact. Below the tenant folder the layout is the one the ObserveRTC stats
 dashboard reads, so a dashboard pointed at `<tenantFqdn>/` shows that tenant.
 
-- `<tenantFqdn>` is the host name the client joined on, the same value the room server resolves
-  the tenant from. Every tenant's data sits under a folder of its own, so it can be listed,
-  given a lifecycle rule, or deleted on its own. Clients that do not send it yet file under
-  `unknown-tenant`. It is a label the client supplies: it cannot escape the key space, but a
-  client can name another tenant's host.
+- `<tenantFqdn>` and `<roomId>` come from the room server, with the router request, when its
+  `clientMonitoring.roomInfo` setting is on: the host name the room's first participant joined on,
+  the same value the room server resolves the tenant from, and the room name, or the room session
+  id when the room server is set to keep room names to itself. They replace whatever a sample
+  says, so a client cannot choose its folder. Every tenant's data sits under a folder of its own,
+  so it can be listed, given a lifecycle rule, or deleted on its own. A room server that sends
+  neither files a call under `unknown-tenant/<callId>/<callId>/`.
 - `<callId>` is the room session id the room server issues, a random UUID per room instance.
   It is also the `roomId` of the router the samples channel was produced on, and a sample naming
   any other call is dropped, so a client can only write into its own call.
@@ -176,11 +178,11 @@ dashboard reads, so a dashboard pointed at `<tenantFqdn>/` shows that tenant.
   first, and stores the new session as `<clientId>~<created ms>.jsonl` next to it; an object of
   the same size is taken as already uploaded. HTTP targets are not checked.
 
-`tenantFqdn` and `roomId` arrive in client-supplied sample attachments, so they are validated
-before use: each must match `[A-Za-z0-9._-]{1,128}` and may not be `.` or `..`. Anything else,
-including a value that was never reported, falls back to `unknown-tenant` or `unknown-room` and
-logs a warning. This keeps a hostile client from
-polluting the key space or escaping the configured HTTP base path.
+`tenantFqdn` and `roomId` are still validated before use, because the room server has the first
+from the URL a client connected with and the second from a name people choose: each must match
+`[A-Za-z0-9._-]{1,128}` and may not be `.` or `..`. Anything else falls back to `unknown-tenant`
+or `unknown-room` and logs a warning. This keeps a crafted host or room name from polluting the
+key space or escaping the configured HTTP base path.
 
 ### Failure behaviour
 

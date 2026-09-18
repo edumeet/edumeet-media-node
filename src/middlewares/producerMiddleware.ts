@@ -386,7 +386,10 @@ export const createProducerMiddleware = ({
 							throw new Error('Failed to consume data producer for ObserverService');
 						}
 
-						observerService.addDataConsumer(dataConsumer, routerData.roomId);
+						observerService.addDataConsumer(dataConsumer, routerData.roomId, {
+							tenantFqdn: routerData.tenantFqdn,
+							roomId: routerData.roomLabel,
+						});
 					}
 
 					response.id = dataProducer.id;

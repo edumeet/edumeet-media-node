@@ -455,6 +455,65 @@ describe('ObserverService - addDataConsumer', () => {
 		expect(svc.rejectedSamples).toBe(2);
 		svc.close();
 	});
+
+	test('files a call where the room server says, whatever the sample claims', () => {
+		const svc = new ObserverService({});
+		const accept = jest.spyOn(svc, 'accept');
+		const dataConsumer = fakeDataConsumer();
+		const message = JSON.stringify({
+			callId: 'call-1',
+			clientId: 'client-1',
+			timestamp: Date.now(),
+			peerConnections: [],
+			attachments: { tenantFqdn: 'other-tenant.example', roomId: '../elsewhere', displayName: 'J••• D••' },
+		});
+
+		svc.addDataConsumer(dataConsumer as never, 'call-1', { tenantFqdn: 'meet.example.org', roomId: 'team-sync' });
+		dataConsumer.handlers.message(message);
+
+		expect(accept.mock.calls[0][0].attachments).toEqual({
+			tenantFqdn: 'meet.example.org',
+			roomId: 'team-sync',
+			displayName: 'J••• D••',
+		});
+		svc.close();
+	});
+
+	test('keeps nothing of attachments that are not an object', () => {
+		const svc = new ObserverService({});
+		const accept = jest.spyOn(svc, 'accept');
+		const dataConsumer = fakeDataConsumer();
+		const message = (attachments: unknown) => JSON.stringify({ callId: 'call-1', clientId: 'client-1', timestamp: Date.now(), peerConnections: [], attachments });
+
+		svc.addDataConsumer(dataConsumer as never, 'call-1', { tenantFqdn: 'meet.example.org', roomId: 'team-sync' });
+		dataConsumer.handlers.message(message('abc'));
+		dataConsumer.handlers.message(message([ 'a', 'b' ]));
+
+		for (const [ sample ] of accept.mock.calls)
+			expect(sample.attachments).toEqual({ tenantFqdn: 'meet.example.org', roomId: 'team-sync' });
+
+		expect(accept).toHaveBeenCalledTimes(2);
+		svc.close();
+	});
+
+	test('files a call under its id when the room server names no room', () => {
+		const svc = new ObserverService({});
+		const accept = jest.spyOn(svc, 'accept');
+		const dataConsumer = fakeDataConsumer();
+		const message = JSON.stringify({
+			callId: 'call-1',
+			clientId: 'client-1',
+			timestamp: Date.now(),
+			peerConnections: [],
+			attachments: { tenantFqdn: 'claimed.example', roomId: 'claimed-room' },
+		});
+
+		svc.addDataConsumer(dataConsumer as never, 'call-1');
+		dataConsumer.handlers.message(message);
+
+		expect(accept.mock.calls[0][0].attachments).toEqual({ tenantFqdn: undefined, roomId: 'call-1' });
+		svc.close();
+	});
 });
 
 describe('ObserverService - sample admission', () => {

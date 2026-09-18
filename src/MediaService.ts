@@ -26,6 +26,10 @@ export interface WorkerData {
 
 export interface RouterData {
 	roomId: string;
+
+	/** From the room server, when it is configured to tell nodes where to file client monitoring samples. */
+	tenantFqdn?: string;
+	roomLabel?: string;
 	webRtcServer: WebRtcServer;
 	workerPid: number;
 	pipeTransports: Map<string, PipeTransport>;

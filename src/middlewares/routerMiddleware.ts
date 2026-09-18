@@ -1,6 +1,7 @@
 import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RoomServerConnectionContext } from '../RoomServerConnection';
+import { RouterData } from '../MediaService';
 
 const logger = new Logger('RouterMiddleware');
 
@@ -22,8 +23,11 @@ export const createRouterMiddleware = ({
 
 		switch (message.method) {
 			case 'getRouter': {
-				const { roomId } = message.data;
+				const { roomId, tenantFqdn, roomLabel } = message.data;
 				const router = await mediaService.getRouter(roomId);
+
+				if (typeof tenantFqdn === 'string') (router.appData as unknown as RouterData).tenantFqdn = tenantFqdn;
+				if (typeof roomLabel === 'string') (router.appData as unknown as RouterData).roomLabel = roomLabel;
 
 				// This could be a new router, but it could also be an existing one.
 				if (!roomServer.routers.has(router.id))
