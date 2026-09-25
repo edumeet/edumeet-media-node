@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:24-trixie-slim
 
 ARG listenPort=3000
 ENV LISTEN_PORT=$listenPort
