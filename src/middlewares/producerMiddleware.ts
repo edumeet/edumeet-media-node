@@ -1,3 +1,5 @@
+import * as mediasoup from 'mediasoup';
+import { RtpHeaderExtensionParameters } from 'mediasoup/types';
 import { Logger, Middleware } from 'edumeet-common';
 import { MiddlewareOptions } from '../common/types';
 import { RouterData } from '../MediaService';
@@ -43,10 +45,23 @@ export const createProducerMiddleware = ({
 				if (!pipeTransport)
 					throw new Error(`pipeTransport with id "${pipeTransportId}" not found`);
 
+				// The parameters come from the pipe consumer on the other node, which may run
+				// another mediasoup version during a rolling upgrade. An older node announces
+				// header extensions a newer one no longer supports (toffset, removed in 3.28),
+				// and produce() rejects the whole request on an unknown URI.
+				const supportedUris = new Set(
+					mediasoup.getSupportedRtpCapabilities().headerExtensions?.map((ext) => ext.uri)
+				);
+
 				const pipeProducer = await pipeTransport.produce({
 					id: producerId,
 					kind,
-					rtpParameters,
+					rtpParameters: {
+						...rtpParameters,
+						headerExtensions: rtpParameters.headerExtensions?.filter(
+							(ext: RtpHeaderExtensionParameters) => supportedUris.has(ext.uri)
+						),
+					},
 					paused,
 				});
 
