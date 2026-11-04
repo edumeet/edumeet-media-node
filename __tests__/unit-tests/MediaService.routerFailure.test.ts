@@ -92,20 +92,20 @@ test('getRouter() - a worker that dies during the lookup does not hide the room 
 	const roomWorker = failingWorker(2, 0);
 	const idleWorker = failingWorker(3, 0);
 	const roomRouter = { id: 'roomId', appData: { workerPid: 2 } };
-	let finishLookup: (value: undefined) => void;
+	let finishLookup!: () => void;
 
 	[ dyingWorker, roomWorker, idleWorker ].forEach((worker) => sut.workers.add(worker));
 	(dyingWorker.appData as WorkerData).cpuUsage = 10;
 	(roomWorker.appData as WorkerData).cpuUsage = 10;
 	(idleWorker.appData as WorkerData).cpuUsage = 5;
 	(roomWorker.appData as WorkerData).routersByRoomId.set('roomId', Promise.resolve(roomRouter));
-	(dyingWorker.appData as WorkerData).routersByRoomId.set('roomId', new Promise((resolve) => (finishLookup = resolve)));
+	(dyingWorker.appData as WorkerData).routersByRoomId.set('roomId', new Promise((resolve) => (finishLookup = () => resolve(undefined))));
 
 	const router = sut.getRouter('roomId');
 
 	await new Promise(setImmediate);
 	sut.workers.remove(dyingWorker);
-	finishLookup(undefined);
+	finishLookup();
 
 	await expect(router).resolves.toBe(roomRouter);
 	expect(idleWorker.createRouter).not.toHaveBeenCalled();
