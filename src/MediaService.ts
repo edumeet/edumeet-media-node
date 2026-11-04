@@ -134,7 +134,7 @@ export default class MediaService {
 
 		clearInterval(this.workerResourceCheckInterval);
 
-		this.workers.items.forEach((w) => w.close());
+		[ ...this.workers.items ].forEach((w) => w.close());
 		this.workers.clear();
 	}
 
@@ -413,7 +413,8 @@ export default class MediaService {
 
 		const roomRouters: Router[] = [];
 
-		for (const { appData } of this.workers.items) {
+		// A copy: a worker that dies during the await is removed from the list, which would skip the next one.
+		for (const { appData } of [ ...this.workers.items ]) {
 			const r = await (appData as unknown as WorkerData).routersByRoomId.get(roomId);
 
 			if (r) roomRouters.push(r);

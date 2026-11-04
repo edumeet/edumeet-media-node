@@ -85,3 +85,28 @@ test('getRouter() - a failed cascade to a second worker does not break the room 
 	await expect(sut.getRouter('roomId')).resolves.toMatchObject({ appData: { workerPid: 2 } });
 	expect(idleWorker.createRouter).toHaveBeenCalledTimes(2);
 });
+
+test('getRouter() - a worker that dies during the lookup does not hide the room router on the next worker', async () => {
+	const sut = new MediaService({ cpuPercentCascadingLimit: 66 } as unknown as MediaServiceOptions);
+	const dyingWorker = failingWorker(1, 0);
+	const roomWorker = failingWorker(2, 0);
+	const idleWorker = failingWorker(3, 0);
+	const roomRouter = { id: 'roomId', appData: { workerPid: 2 } };
+	let finishLookup: (value: undefined) => void;
+
+	[ dyingWorker, roomWorker, idleWorker ].forEach((worker) => sut.workers.add(worker));
+	(dyingWorker.appData as WorkerData).cpuUsage = 10;
+	(roomWorker.appData as WorkerData).cpuUsage = 10;
+	(idleWorker.appData as WorkerData).cpuUsage = 5;
+	(roomWorker.appData as WorkerData).routersByRoomId.set('roomId', Promise.resolve(roomRouter));
+	(dyingWorker.appData as WorkerData).routersByRoomId.set('roomId', new Promise((resolve) => (finishLookup = resolve)));
+
+	const router = sut.getRouter('roomId');
+
+	await new Promise(setImmediate);
+	sut.workers.remove(dyingWorker);
+	finishLookup(undefined);
+
+	await expect(router).resolves.toBe(roomRouter);
+	expect(idleWorker.createRouter).not.toHaveBeenCalled();
+});
