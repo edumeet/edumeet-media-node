@@ -44,7 +44,7 @@
 		"mediasoup": "^3.32.2",
 		"minimist": "^1.2.8",
 		"socket.io": "^4.8.4",
-		"systeminformation": "^5.31.15"
+		"systeminformation": "^5.33.19"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.1.0",
