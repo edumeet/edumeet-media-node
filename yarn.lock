@@ -2607,7 +2607,7 @@ __metadata:
     globals: "npm:^17.13.0"
     husky: "npm:^8.0.3"
     jest: "npm:^30.3.0"
-    mediasoup: "npm:^3.30.1"
+    mediasoup: "npm:^3.32.2"
     minimist: "npm:^1.2.8"
     socket.io: "npm:^4.8.4"
     systeminformation: "npm:^5.31.15"
@@ -4120,9 +4120,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mediasoup@npm:^3.30.1":
-  version: 3.30.1
-  resolution: "mediasoup@npm:3.30.1"
+"mediasoup@npm:^3.32.2":
+  version: 3.32.2
+  resolution: "mediasoup@npm:3.32.2"
   dependencies:
     debug: "npm:^4.4.3"
     flatbuffers: "npm:^25.9.23"
@@ -4130,7 +4130,7 @@ __metadata:
     node-fetch: "npm:^3.3.2"
     supports-color: "npm:^11.0.0"
     tar: "npm:^7.5.22"
-  checksum: 10c0/8c6cd0eea10899594a9361945cd3c994db6ec405bc4ce089c35475c348a6f1a94d98f6e4a34e43813ecd95616c7f424b84986e1da3b80ec4e6e466864c0a250b
+  checksum: 10c0/57e8660e338a5d335c0c301ca6807b27c0a0ca5af2a6df9acaad578d130f90cd3d92c947c52ad47155fe72abd6ffcdd4d9c1b0a7232ba3b13dd0f38ca2244b09
   languageName: node
   linkType: hard
 
