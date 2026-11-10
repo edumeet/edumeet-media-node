@@ -19,13 +19,15 @@ Add up the number of cores, and the number of pipes between routers and you have
 ```bash
 $ corepack enable
 $ yarn install --immutable
-$ yarn start --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
+$ MEDIA_SECRET=<secret-shared-with-room-server> yarn start --ip <public-ip-of-host>
 ```
+
+The secret can also be given as `--secret <secret>`, but other accounts on the host can read a process's command line, so the `MEDIA_SECRET` environment variable is preferred.
 
 To run the service you need to have Node.js version 24 or higher installed. This project uses Yarn 4 via Corepack. Alternatively you can get some debug output by running it like this:
 
 ```bash
-$ DEBUG=edumeet:* yarn start --ip <public-ip-of-host> --secret <secret-shared-with-room-server>
+$ DEBUG=edumeet:* MEDIA_SECRET=<secret-shared-with-room-server> yarn start --ip <public-ip-of-host>
 ```
 ### Docker
 https://github.com/edumeet/edumeet-docker/tree/4.x has guidelines for running the next generation Edumeet as docker containers.

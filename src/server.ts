@@ -1,6 +1,7 @@
 process.title = 'edumeet-media-node';
 
 import minimist from 'minimist';
+import { mediaSecret } from './common/secret';
 import fs from 'fs';
 import os from 'os';
 import https from 'https';
@@ -34,8 +35,9 @@ const showUsage = () => {
 	logger.debug('    The port to listen for incoming connections socket connections.\n\n');
 	logger.debug('  --listenHost <host> (optional, default: 0.0.0.0)');
 	logger.debug('    The host to listen for incoming connections socket connections.\n\n');
-	logger.debug('  --secret <string> (optional, default: none)');
-	logger.debug('    The secret to use for authenticating with the room server.\n\n');
+	logger.debug('  --secret <string> (optional, default: the MEDIA_SECRET environment variable)');
+	logger.debug('    The secret to use for authenticating with the room server. Prefer MEDIA_SECRET:');
+	logger.debug('    other accounts on the host can read the command line, but not the environment.\n\n');
 	logger.debug('  --availableUpload <bitrate> (optional, default: 1000)');
 	logger.debug('    The available upload bandwidth in Mbps.\n\n');
 	logger.debug('  --availableDownload <bitrate> (optional, default: 1000)');
@@ -120,7 +122,7 @@ export const cancelDrain = () => {
 		usage,
 		listenPort = 3000,
 		listenHost = '0.0.0.0',
-		secret,
+		secret: secretArg,
 		availableUpload = 1000,
 		availableDownload = 1000,
 		cert = './certs/edumeet-demo-cert.pem',
@@ -141,6 +143,7 @@ export const cancelDrain = () => {
 		samplesStorePath,
 		samplesUploadUri,
 	} = minimist(process.argv.slice(2));
+	const secret = mediaSecret(secretArg);
 
 	if (!ip || help || usage) {
 		showUsage();
