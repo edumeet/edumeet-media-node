@@ -1,0 +1,31 @@
+# Advisories ignored by OSV-Scanner. Every entry must say why it does not
+# affect the media node and carry an ignoreUntil date so it gets re-checked.
+#
+# None of glob, minimatch or picomatch is in the production dependency tree
+# (dependencies + edumeet-common). They come only from build, test, lint and
+# install tooling: jest, eslint, typescript-eslint, and node-gyp. That tooling
+# only matches patterns from our own config and source tree, never input from
+# clients.
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+# picomatch ReDoS. No patched version exists (last_affected 4.0.7, the latest).
+# Reached via jest-haste-map, jest-util, jest-message-util, chokidar@3 >
+# anymatch/readdirp, and typescript-eslint/node-gyp > tinyglobby.
+ignoreUntil = 2027-02-18
+reason = "picomatch has no fixed release; only reached via dev/install tooling (jest, typescript-eslint, node-gyp) matching our own patterns, not in the production dependency tree."
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+# minimatch DoS. Fixed only in minimatch 11, a new major that eslint,
+# typescript-eslint, glob and test-exclude do not accept yet.
+ignoreUntil = 2027-02-18
+reason = "minimatch fix needs major 11, not yet accepted by eslint/typescript-eslint/glob; only reached via dev tooling, not in the production dependency tree."
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+# glob AbortSignal bypass. Fixed only in glob 14, a new major. Reached via
+# jest 30 (@jest/reporters, jest-config, jest-runtime) and node-gyp >
+# make-fetch-happen > cacache.
+ignoreUntil = 2027-02-18
+reason = "glob fix needs major 14, not yet accepted by jest 30 or node-gyp's cacache; only reached via test/install tooling, not in the production dependency tree."
