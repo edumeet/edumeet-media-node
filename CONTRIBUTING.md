@@ -57,10 +57,10 @@ The following steps will get you setup to contribute changes to this repo:
     ```
 6. Create pull request to the main branch of edumeet-media-node.
 ### Git hooks
-We're using husky git-hooks. When you do a commit, it will fail if `yarn lint` fails. When you do a push, it will fail if `yarn test:unit` or `yarn build` fails.
+We're using husky git-hooks. The pre-commit hook runs `yarn lint`; the pre-push hook runs `yarn build`. Run `yarn test:unit` separately.
 
 ### Commands
-**`DEBUG=edumeet-media-node:* yarn start`**
+**`LOG_LEVEL=debug yarn start`**
 
 - run the service in debug mode
 
