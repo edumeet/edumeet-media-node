@@ -137,3 +137,34 @@ test('createWebrtcTransport', async () => {
 	observer.emit('close');
 	expect(spyNotify.mock.calls[0][0].method).toBe('webRtcTransportClosed');
 });
+
+test('createWebrtcTransport - a transport that closes before its bitrate is set does not end the node', async () => {
+	const roomServer = new RoomServerMock() as unknown as RoomServer;
+	const mediaService = new MediaServiceMock() as unknown as MediaService;
+	const sut = createTransportMiddleware({ roomServer, mediaService } as unknown as MiddlewareOptions);
+	const conn = new RoomServerConnectionMock() as unknown as RoomServerConnection;
+	const context = {
+		roomServerConnection: conn,
+		message: { method: 'createWebRtcTransport', data: { routerId: 'id' } },
+		response: {}
+	} as unknown as RoomServerConnectionContext;
+	const transport = new TransportMock(undefined, undefined, new EventEmitter()) as unknown as WebRtcTransport;
+	const router = new RouterMock(undefined, transport) as unknown as Router;
+	const unhandled = jest.fn();
+
+	jest.spyOn(roomServer.routers, 'get').mockImplementation(() => router);
+	jest.spyOn(router, 'createWebRtcTransport').mockImplementation(async () => transport);
+	jest.spyOn(transport, 'setMaxIncomingBitrate').mockRejectedValue(new Error('Transport closed'));
+	jest.spyOn(transport, 'setMaxOutgoingBitrate').mockRejectedValue(new Error('Transport closed'));
+
+	process.on('unhandledRejection', unhandled);
+	try {
+		await sut(context, next);
+		await new Promise((resolve) => setImmediate(resolve));
+
+		expect(context.handled).toBeTruthy();
+		expect(unhandled).not.toHaveBeenCalled();
+	} finally {
+		process.off('unhandledRejection', unhandled);
+	}
+});
