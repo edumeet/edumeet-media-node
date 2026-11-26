@@ -1,7 +1,7 @@
 process.title = 'edumeet-media-node';
 
 import minimist from 'minimist';
-import { mediaSecret } from './common/secret';
+import { isRoomServerSecret, mediaSecret } from './common/secret';
 import fs from 'fs';
 import os from 'os';
 import https from 'https';
@@ -35,9 +35,10 @@ const showUsage = () => {
 	logger.debug('    The port to listen for incoming connections socket connections.\n\n');
 	logger.debug('  --listenHost <host> (optional, default: 0.0.0.0)');
 	logger.debug('    The host to listen for incoming connections socket connections.\n\n');
-	logger.debug('  --secret <string> (optional, default: the MEDIA_SECRET environment variable)');
+	logger.debug('  --secret <string> (default: the MEDIA_SECRET environment variable)');
 	logger.debug('    The secret to use for authenticating with the room server. Prefer MEDIA_SECRET:');
-	logger.debug('    other accounts on the host can read the command line, but not the environment.\n\n');
+	logger.debug('    other accounts on the host can read the command line, but not the environment.');
+	logger.debug('    The media node does not start without a secret.\n\n');
 	logger.debug('  --availableUpload <bitrate> (optional, default: 1000)');
 	logger.debug('    The available upload bandwidth in Mbps.\n\n');
 	logger.debug('  --availableDownload <bitrate> (optional, default: 1000)');
@@ -151,6 +152,13 @@ export const cancelDrain = () => {
 		return process.exit(1);
 	}
 
+	// Without a secret, a connection that sends none would be taken for a room server.
+	if (!secret) {
+		logger.error('No secret for the room servers: set the MEDIA_SECRET environment variable (or --secret). The media node does not start without one.');
+
+		return process.exit(1);
+	}
+
 	logger.info({
 		listenPort,
 		listenHost,
@@ -237,7 +245,7 @@ export const cancelDrain = () => {
 
 		const { secret: connectionSecret } = socket.handshake.query;
 
-		if (connectionSecret !== secret) {
+		if (!isRoomServerSecret(connectionSecret, secret)) {
 			logger.error({ socketId: socket.id }, 'invalid secret');
 
 			return socket.disconnect(true);
