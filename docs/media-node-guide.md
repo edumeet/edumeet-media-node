@@ -26,6 +26,7 @@ $ MEDIA_SECRET=<secret-shared-with-room-server> yarn start --ip <host-listen-ip>
 ```
 
 The secret can also be given as `--secret <secret>`, but other accounts on the host can read a process's command line, so the `MEDIA_SECRET` environment variable is preferred.
+The media node does not start without a secret, and it refuses every connection that does not present it.
 Use an address assigned to the host for `--ip`. If the host is behind NAT, also
 pass `--announcedIp <public-ip>` so clients receive the reachable address.
 
