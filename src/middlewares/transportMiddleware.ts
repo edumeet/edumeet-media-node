@@ -160,16 +160,19 @@ export const createTransportMiddleware = ({
 				response.sctpParameters = transport.sctpParameters;
 				context.handled = true;
 
+				// Not awaited, so the answer is not delayed. The transport can close before the worker
+				// answers, for example when its room empties, and a rejection nobody handles ends the
+				// media node.
 				if (mediaService.maxIncomingBitrate) {
 					(async () => {
 						await transport.setMaxIncomingBitrate(mediaService.maxIncomingBitrate);
-					})().catch();
+					})().catch((error) => logger.debug({ err: error }, 'setMaxIncomingBitrate() failed'));
 				}
 
 				if (mediaService.maxOutgoingBitrate) {
 					(async () => {
 						await transport.setMaxOutgoingBitrate(mediaService.maxOutgoingBitrate);
-					})().catch();
+					})().catch((error) => logger.debug({ err: error }, 'setMaxOutgoingBitrate() failed'));
 				}
 
 				break;
